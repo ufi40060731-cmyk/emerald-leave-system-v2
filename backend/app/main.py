@@ -1600,6 +1600,30 @@ def rotate_default_passwords() -> None:
             print("=== end of rotated passwords ===\n")
 
 
+def force_reset_all_passwords() -> None:
+    """Admin-triggered bulk reset: sets a fresh random password for EVERY
+    account regardless of its current password. Unlike rotate_default_passwords
+    this is not self-guarding (it will re-run every startup while the env var
+    is set), so it must be turned off again right after use. Gated behind
+    FORCE_RESET_ALL_PASSWORDS; new passwords are printed to the deploy log
+    exactly once (shown nowhere else - not stored in plaintext).
+    """
+    if os.getenv("FORCE_RESET_ALL_PASSWORDS", "").strip().lower() not in {"1", "true", "yes"}:
+        return
+    with SessionLocal() as db:
+        reset: list[tuple[str, str]] = []
+        for user in db.scalars(select(User)):
+            new_password = secrets.token_urlsafe(9)
+            user.password_hash = pwd_context.hash(new_password)
+            reset.append((user.id, new_password))
+        if reset:
+            db.commit()
+            print("\n=== EMERALD: ALL passwords force-reset (shown once, save now) ===")
+            for user_id, new_password in reset:
+                print(f"{user_id}: {new_password}")
+            print("=== end of reset passwords ===\n")
+
+
 @app.on_event("startup")
 def startup() -> None:
     if SECRET_KEY == "change-this-before-production":
@@ -1613,6 +1637,7 @@ def startup() -> None:
         )
     seed_demo_data()
     rotate_default_passwords()
+    force_reset_all_passwords()
     bootstrap_calendar_years()
     start_holiday_scheduler()
 
