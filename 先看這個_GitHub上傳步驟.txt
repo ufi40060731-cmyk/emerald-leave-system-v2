@@ -1,5 +1,13 @@
 GitHub Repository:
-https://github.com/d1124181042-arch/emerald-leave-system-v2
+https://github.com/ufi40060731-cmyk/emerald-leave-system-v2
+
+This repository is already deployed live on Railway:
+https://emerald-app-production.up.railway.app
+
+You normally do NOT need to follow the manual upload steps below anymore -
+pushing to the `main` branch (e.g. via GitHub Desktop) automatically
+triggers a Railway redeploy. The steps below are kept only as a reference
+for setting up a brand new repository from scratch.
 
 請先將本 ZIP 全部解壓縮。
 
