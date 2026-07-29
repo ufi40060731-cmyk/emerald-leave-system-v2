@@ -2359,6 +2359,13 @@ def _work_rules_chat_answer(message: str, language: str, db: Session) -> dict | 
                 "th": "\n\n(แปลด้วยระบบอัตโนมัติจากต้นฉบับภาษาจีน หากมีข้อสงสัยให้ยึดตามต้นฉบับภาษาจีนเป็นหลัก)",
             }.get(language, "")
             answer = f"{header}\n{translated}{translated_note}"
+        elif language == "th":
+            # No translation provider configured. Rather than show the Chinese
+            # text with a "Chinese only" disclaimer, defer to the RAG pipeline,
+            # which has a properly written native-Thai source document
+            # (emerald_work_rules_thai_original.md) that answers Thai questions
+            # directly without needing machine translation.
+            return None
         else:
             note = {
                 "en": "\n\n(Note: the official rule text above is in Chinese only; ask HR for a translated copy if needed.)",
