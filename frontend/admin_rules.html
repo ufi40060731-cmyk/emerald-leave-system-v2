@@ -261,6 +261,41 @@
 
     <div id="adminArea" class="hidden">
       <section class="card">
+        <h2>批次匯入規章（貼上整份文件文字）</h2>
+        <p class="muted">
+          把整份工作規章文件的文字（例如從 PDF 複製出來、包含「第 1 條」「第 2 條」…的內容）貼在下面，
+          按「解析預覽」會自動依照「第 N 條」切成一筆一筆規章，確認沒問題後再按「確認匯入」。
+          代碼會自動編成 <code>RULE-1</code>、<code>RULE-2</code>…；如果代碼已經存在，會自動改成更新該筆規章而不是重複新增。
+        </p>
+
+        <label for="bulkCategory">這批規章要歸類的分類（全部套用同一個）</label>
+        <input id="bulkCategory" maxlength="40" value="work_rules" style="margin-bottom: 12px;">
+
+        <label for="bulkText">貼上文件內容</label>
+        <textarea id="bulkText" style="min-height: 220px;" placeholder="貼上「目的」「適用範圍」…「第 1 條」「第 2 條」…整份文字"></textarea>
+
+        <div class="actions" style="margin-top: 12px;">
+          <button id="parseBulkButton" class="secondary" type="button">解析預覽</button>
+          <button id="importBulkButton" class="hidden" type="button">確認匯入全部</button>
+        </div>
+
+        <div id="bulkStatus" class="status"></div>
+
+        <div id="bulkPreview" class="table-wrap hidden" style="margin-top: 12px;">
+          <table>
+            <thead>
+              <tr>
+                <th>代碼</th>
+                <th>標題</th>
+                <th>內容預覽</th>
+              </tr>
+            </thead>
+            <tbody id="bulkPreviewBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
         <h2 id="formTitle">新增工作規章</h2>
 
         <form id="ruleForm" class="grid">
@@ -361,6 +396,16 @@
     const cancelEditButton = document.getElementById("cancelEditButton");
     const refreshButton = document.getElementById("refreshButton");
     const logoutButton = document.getElementById("logoutButton");
+
+    const bulkCategoryInput = document.getElementById("bulkCategory");
+    const bulkTextInput = document.getElementById("bulkText");
+    const bulkStatus = document.getElementById("bulkStatus");
+    const bulkPreview = document.getElementById("bulkPreview");
+    const bulkPreviewBody = document.getElementById("bulkPreviewBody");
+    const parseBulkButton = document.getElementById("parseBulkButton");
+    const importBulkButton = document.getElementById("importBulkButton");
+
+    let parsedArticles = [];
 
     let editingCode = null;
 
@@ -650,6 +695,131 @@
       } finally {
         saveButton.disabled = false;
       }
+    });
+
+    function parseArticles(text) {
+      const marker = /第\s*([0-9]+)\s*條([^\n]*)/g;
+      const matches = [...text.matchAll(marker)];
+      const articles = [];
+
+      matches.forEach((match, index) => {
+        const num = match[1];
+        const inlineTitle = match[2].trim();
+        const startIndex = match.index + match[0].length;
+        const endIndex = index + 1 < matches.length ? matches[index + 1].index : text.length;
+        const content = text.slice(startIndex, endIndex).trim();
+
+        if (!content) return;
+
+        articles.push({
+          code: `RULE-${num}`,
+          title: inlineTitle || `第 ${num} 條`,
+          content_zh: content,
+          sort_order: Number(num) || 0
+        });
+      });
+
+      return articles;
+    }
+
+    function renderBulkPreview(articles) {
+      bulkPreviewBody.innerHTML = "";
+
+      for (const article of articles) {
+        const row = document.createElement("tr");
+
+        const codeCell = document.createElement("td");
+        codeCell.textContent = article.code;
+        row.appendChild(codeCell);
+
+        const titleCell = document.createElement("td");
+        titleCell.textContent = article.title;
+        row.appendChild(titleCell);
+
+        const contentCell = document.createElement("td");
+        contentCell.className = "content-cell";
+        contentCell.textContent = article.content_zh.length > 100
+          ? `${article.content_zh.slice(0, 100)}…`
+          : article.content_zh;
+        row.appendChild(contentCell);
+
+        bulkPreviewBody.appendChild(row);
+      }
+    }
+
+    parseBulkButton.addEventListener("click", () => {
+      const text = bulkTextInput.value;
+      parsedArticles = parseArticles(text);
+
+      if (!parsedArticles.length) {
+        setStatus(bulkStatus, "沒有偵測到「第 N 條」格式的內容，請確認貼上的文字包含「第 1 條」「第 2 條」…這類條號。", "error");
+        bulkPreview.classList.add("hidden");
+        importBulkButton.classList.add("hidden");
+        return;
+      }
+
+      renderBulkPreview(parsedArticles);
+      bulkPreview.classList.remove("hidden");
+      importBulkButton.classList.remove("hidden");
+      setStatus(bulkStatus, `偵測到 ${parsedArticles.length} 條規章，確認無誤後按「確認匯入全部」。`, "ok");
+    });
+
+    importBulkButton.addEventListener("click", async () => {
+      if (!parsedArticles.length) return;
+
+      importBulkButton.disabled = true;
+      const category = bulkCategoryInput.value.trim() || "work_rules";
+      let created = 0;
+      let updated = 0;
+      let failed = 0;
+
+      for (const article of parsedArticles) {
+        setStatus(bulkStatus, `匯入中… (${created + updated + failed + 1} / ${parsedArticles.length})`);
+
+        const payload = {
+          title: article.title,
+          category,
+          content_zh: article.content_zh,
+          sort_order: article.sort_order
+        };
+
+        try {
+          const createResponse = await apiFetch("/api/admin/work-rules", {
+            method: "POST",
+            body: JSON.stringify({ code: article.code, ...payload })
+          });
+
+          if (createResponse.status === 409) {
+            const updateResponse = await apiFetch(`/api/admin/work-rules/${encodeURIComponent(article.code)}`, {
+              method: "PUT",
+              body: JSON.stringify(payload)
+            });
+            if (updateResponse.ok) {
+              updated += 1;
+            } else {
+              failed += 1;
+            }
+          } else if (createResponse.ok) {
+            created += 1;
+          } else {
+            failed += 1;
+          }
+        } catch {
+          failed += 1;
+        }
+      }
+
+      setStatus(
+        bulkStatus,
+        `匯入完成：新增 ${created} 筆、更新 ${updated} 筆${failed ? `、失敗 ${failed} 筆` : ""}。`,
+        failed ? "error" : "ok"
+      );
+      importBulkButton.disabled = false;
+      bulkPreview.classList.add("hidden");
+      importBulkButton.classList.add("hidden");
+      parsedArticles = [];
+      bulkTextInput.value = "";
+      await loadRules();
     });
 
     cancelEditButton.addEventListener("click", resetForm);
