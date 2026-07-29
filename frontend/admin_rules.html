@@ -271,7 +271,11 @@
         <label for="bulkCategory">這批規章要歸類的分類（全部套用同一個）</label>
         <input id="bulkCategory" maxlength="40" value="work_rules" style="margin-bottom: 12px;">
 
-        <label for="bulkText">貼上文件內容</label>
+        <label for="bulkFile">或直接上傳檔案（PDF 或 .txt，會自動讀取文字填入下面）</label>
+        <input id="bulkFile" type="file" accept=".pdf,.txt" style="margin-bottom: 12px; background: white;">
+        <div id="fileStatus" class="status"></div>
+
+        <label for="bulkText">貼上文件內容（或用上面上傳檔案自動帶入）</label>
         <textarea id="bulkText" style="min-height: 220px;" placeholder="貼上「目的」「適用範圍」…「第 1 條」「第 2 條」…整份文字"></textarea>
 
         <div class="actions" style="margin-top: 12px;">
@@ -362,8 +366,14 @@
   </main>
 
   <script src="./config.js?v=20260729"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>
     "use strict";
+
+    if (window.pdfjsLib) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    }
 
     const API_BASE = (window.EMERALD_CONFIG && window.EMERALD_CONFIG.API_BASE_URL)
       ? window.EMERALD_CONFIG.API_BASE_URL
@@ -398,6 +408,8 @@
     const logoutButton = document.getElementById("logoutButton");
 
     const bulkCategoryInput = document.getElementById("bulkCategory");
+    const bulkFileInput = document.getElementById("bulkFile");
+    const fileStatus = document.getElementById("fileStatus");
     const bulkTextInput = document.getElementById("bulkText");
     const bulkStatus = document.getElementById("bulkStatus");
     const bulkPreview = document.getElementById("bulkPreview");
@@ -694,6 +706,60 @@
         setStatus(formStatus, error.message, "error");
       } finally {
         saveButton.disabled = false;
+      }
+    });
+
+    async function extractPdfText(file) {
+      const buffer = await file.arrayBuffer();
+      const pdf = await window.pdfjsLib.getDocument({ data: buffer }).promise;
+      const pageTexts = [];
+
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
+        const page = await pdf.getPage(pageNum);
+        const content = await page.getTextContent();
+        const lines = [];
+        let currentLineY = null;
+        let currentLine = [];
+
+        for (const item of content.items) {
+          const y = item.transform[5];
+          if (currentLineY !== null && Math.abs(y - currentLineY) > 2) {
+            lines.push(currentLine.join(""));
+            currentLine = [];
+          }
+          currentLineY = y;
+          currentLine.push(item.str);
+        }
+        if (currentLine.length) lines.push(currentLine.join(""));
+
+        pageTexts.push(lines.join("\n"));
+      }
+
+      return pageTexts.join("\n");
+    }
+
+    bulkFileInput.addEventListener("change", async () => {
+      const file = bulkFileInput.files[0];
+      if (!file) return;
+
+      setStatus(fileStatus, `讀取「${file.name}」中…`);
+
+      try {
+        let text;
+
+        if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+          if (!window.pdfjsLib) {
+            throw new Error("PDF 解析套件載入失敗，請改用貼上文字的方式");
+          }
+          text = await extractPdfText(file);
+        } else {
+          text = await file.text();
+        }
+
+        bulkTextInput.value = text;
+        setStatus(fileStatus, `已讀取「${file.name}」，共 ${text.length} 字，請按下方「解析預覽」確認`, "ok");
+      } catch (error) {
+        setStatus(fileStatus, `讀取失敗：${error.message}`, "error");
       }
     });
 
