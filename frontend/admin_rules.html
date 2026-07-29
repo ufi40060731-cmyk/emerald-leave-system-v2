@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Emerald 工作規章管理後台</title>
+  <style>
+    :root {
+      font-family: "Segoe UI", "Microsoft JhengHei", sans-serif;
+      color: #1f2937;
+      background: #f3f4f6;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #0f766e;
+      color: white;
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    header p {
+      margin: 4px 0 0;
+      opacity: 0.85;
+      font-size: 14px;
+    }
+
+    header a {
+      color: #d1fae5;
+      font-size: 13px;
+    }
+
+    main {
+      width: min(1180px, calc(100% - 32px));
+      margin: 28px auto;
+    }
+
+    .card {
+      background: white;
+      border-radius: 14px;
+      padding: 22px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    }
+
+    h2 {
+      margin-top: 0;
+      font-size: 19px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .full { grid-column: 1 / -1; }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    input, select, textarea, button {
+      width: 100%;
+      border-radius: 8px;
+      font: inherit;
+    }
+
+    input, select, textarea {
+      min-height: 42px;
+      border: 1px solid #cbd5e1;
+      padding: 9px 11px;
+      background: white;
+    }
+
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: 2px solid #99f6e4;
+      border-color: #0f766e;
+    }
+
+    button {
+      border: 0;
+      min-height: 42px;
+      padding: 9px 14px;
+      cursor: pointer;
+      font-weight: 700;
+      background: #0f766e;
+      color: white;
+    }
+
+    button:hover { filter: brightness(0.94); }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    .secondary {
+      width: auto;
+      background: #334155;
+    }
+
+    .danger {
+      width: auto;
+      background: #b91c1c;
+    }
+
+    .small {
+      width: auto;
+      min-height: 32px;
+      padding: 6px 10px;
+      font-size: 13px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .status {
+      min-height: 24px;
+      margin-top: 12px;
+      font-size: 14px;
+      white-space: pre-wrap;
+    }
+
+    .status.ok { color: #047857; }
+    .status.error { color: #b91c1c; }
+    .hidden { display: none !important; }
+
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 860px;
+    }
+
+    th, td {
+      border-bottom: 1px solid #e2e8f0;
+      padding: 11px 10px;
+      text-align: left;
+      font-size: 14px;
+      vertical-align: top;
+    }
+
+    th { background: #f8fafc; }
+
+    td.content-cell {
+      max-width: 360px;
+      white-space: pre-wrap;
+      color: #475569;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .top-info {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      font-size: 14px;
+    }
+
+    .muted {
+      color: #64748b;
+      font-size: 13px;
+    }
+
+    .row-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    @media (max-width: 720px) {
+      .grid { grid-template-columns: 1fr; }
+
+      header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Emerald 工作規章管理後台</h1>
+      <p>新增 / 編輯 / 刪除「詢問 AI」查詢的工作規章條文</p>
+    </div>
+
+    <div class="top-info">
+      <a href="./index.html">← 回主系統</a>
+      <span id="sessionPanel" class="top-info hidden">
+        <span id="currentUser"></span>
+        <button id="logoutButton" class="danger small" type="button">登出</button>
+      </span>
+    </div>
+  </header>
+
+  <main>
+    <section id="loginCard" class="card">
+      <h2>HR / 管理員登入</h2>
+      <p class="muted">只有 hr 或 admin 角色可以管理工作規章。</p>
+
+      <form id="loginForm" class="grid">
+        <div>
+          <label for="account">帳號</label>
+          <input id="account" value="HR001" autocomplete="username" required>
+        </div>
+
+        <div>
+          <label for="loginPassword">密碼</label>
+          <input
+            id="loginPassword"
+            type="password"
+            value="1234"
+            autocomplete="current-password"
+            required
+          >
+        </div>
+
+        <div class="full">
+          <button id="loginButton" type="submit">登入後台</button>
+        </div>
+      </form>
+
+      <div id="loginStatus" class="status"></div>
+    </section>
+
+    <div id="adminArea" class="hidden">
+      <section class="card">
+        <h2 id="formTitle">新增工作規章</h2>
+
+        <form id="ruleForm" class="grid">
+          <div>
+            <label for="ruleCode">規章代碼</label>
+            <input id="ruleCode" maxlength="30" placeholder="例如 SICK-01" required>
+          </div>
+
+          <div>
+            <label for="ruleCategory">分類</label>
+            <input id="ruleCategory" maxlength="40" placeholder="例如 sick_leave" required>
+          </div>
+
+          <div class="full">
+            <label for="ruleTitle">標題</label>
+            <input id="ruleTitle" maxlength="200" placeholder="例如 病假申請與醫療證明規定" required>
+          </div>
+
+          <div class="full">
+            <label for="ruleContent">內容（繁體中文，Chatbot 會直接引用這段文字回答）</label>
+            <textarea id="ruleContent" required></textarea>
+          </div>
+
+          <div>
+            <label for="ruleSortOrder">排序（數字越小越前面）</label>
+            <input id="ruleSortOrder" type="number" value="0" required>
+          </div>
+
+          <div class="full actions">
+            <button id="saveButton" type="submit">新增規章</button>
+            <button id="cancelEditButton" class="secondary hidden" type="button">取消編輯</button>
+          </div>
+        </form>
+
+        <div id="formStatus" class="status"></div>
+      </section>
+
+      <section class="card">
+        <div class="actions">
+          <h2 style="margin: 0; flex: 1;">目前規章清單</h2>
+          <button id="refreshButton" class="secondary" type="button">重新整理</button>
+        </div>
+
+        <p class="muted">刪除為軟刪除（active = false），刪除後會立刻從清單與 Chatbot 查詢結果中消失。</p>
+        <div id="listStatus" class="status"></div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>代碼</th>
+                <th>標題</th>
+                <th>分類</th>
+                <th>排序</th>
+                <th>內容</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="ruleTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="./config.js?v=20260729"></script>
+  <script>
+    "use strict";
+
+    const API_BASE = (window.EMERALD_CONFIG && window.EMERALD_CONFIG.API_BASE_URL)
+      ? window.EMERALD_CONFIG.API_BASE_URL
+      : ((location.protocol === "http:" || location.protocol === "https:") ? location.origin : "");
+    const TOKEN_KEY = "emerald_admin_access_token";
+
+    const loginCard = document.getElementById("loginCard");
+    const adminArea = document.getElementById("adminArea");
+    const sessionPanel = document.getElementById("sessionPanel");
+    const currentUser = document.getElementById("currentUser");
+
+    const loginForm = document.getElementById("loginForm");
+    const ruleForm = document.getElementById("ruleForm");
+
+    const loginStatus = document.getElementById("loginStatus");
+    const formStatus = document.getElementById("formStatus");
+    const listStatus = document.getElementById("listStatus");
+
+    const ruleTableBody = document.getElementById("ruleTableBody");
+    const formTitle = document.getElementById("formTitle");
+
+    const ruleCodeInput = document.getElementById("ruleCode");
+    const ruleCategoryInput = document.getElementById("ruleCategory");
+    const ruleTitleInput = document.getElementById("ruleTitle");
+    const ruleContentInput = document.getElementById("ruleContent");
+    const ruleSortOrderInput = document.getElementById("ruleSortOrder");
+
+    const loginButton = document.getElementById("loginButton");
+    const saveButton = document.getElementById("saveButton");
+    const cancelEditButton = document.getElementById("cancelEditButton");
+    const refreshButton = document.getElementById("refreshButton");
+    const logoutButton = document.getElementById("logoutButton");
+
+    let editingCode = null;
+
+    function setStatus(element, message, type = "") {
+      element.textContent = message;
+      element.className = `status ${type}`.trim();
+    }
+
+    function getToken() {
+      return sessionStorage.getItem(TOKEN_KEY) || "";
+    }
+
+    function setToken(token) {
+      if (token) {
+        sessionStorage.setItem(TOKEN_KEY, token);
+      } else {
+        sessionStorage.removeItem(TOKEN_KEY);
+      }
+    }
+
+    async function readJsonSafely(response) {
+      const text = await response.text();
+      if (!text) return {};
+      try {
+        return JSON.parse(text);
+      } catch {
+        return { detail: text };
+      }
+    }
+
+    function errorMessage(data, fallback) {
+      if (typeof data?.detail === "string") return data.detail;
+      if (Array.isArray(data?.detail)) {
+        return data.detail.map(item => item.msg || JSON.stringify(item)).join("\n");
+      }
+      return fallback;
+    }
+
+    async function apiFetch(path, options = {}) {
+      const token = getToken();
+      const headers = new Headers(options.headers || {});
+      if (options.body && !headers.has("Content-Type")) {
+        headers.set("Content-Type", "application/json");
+      }
+      if (token) {
+        headers.set("Authorization", `Bearer ${token}`);
+      }
+      return fetch(`${API_BASE}${path}`, { ...options, headers });
+    }
+
+    function showLoggedOut() {
+      loginCard.classList.remove("hidden");
+      adminArea.classList.add("hidden");
+      sessionPanel.classList.add("hidden");
+      currentUser.textContent = "";
+      ruleTableBody.innerHTML = "";
+    }
+
+    function showLoggedIn(user) {
+      loginCard.classList.add("hidden");
+      adminArea.classList.remove("hidden");
+      sessionPanel.classList.remove("hidden");
+      currentUser.textContent = `${user.id}｜${user.name}｜${user.role}`;
+    }
+
+    function resetForm() {
+      editingCode = null;
+      ruleForm.reset();
+      ruleCodeInput.disabled = false;
+      ruleSortOrderInput.value = "0";
+      formTitle.textContent = "新增工作規章";
+      saveButton.textContent = "新增規章";
+      cancelEditButton.classList.add("hidden");
+    }
+
+    function startEdit(rule) {
+      editingCode = rule.code;
+      ruleCodeInput.value = rule.code;
+      ruleCodeInput.disabled = true;
+      ruleCategoryInput.value = rule.category;
+      ruleTitleInput.value = rule.title;
+      ruleContentInput.value = rule.content_zh;
+      ruleSortOrderInput.value = rule.sort_order;
+      formTitle.textContent = `編輯規章：${rule.code}`;
+      saveButton.textContent = "更新規章";
+      cancelEditButton.classList.remove("hidden");
+      setStatus(formStatus, "");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function renderRules(rules) {
+      ruleTableBody.innerHTML = "";
+
+      for (const rule of rules) {
+        const row = document.createElement("tr");
+
+        const codeCell = document.createElement("td");
+        codeCell.textContent = rule.code;
+        row.appendChild(codeCell);
+
+        const titleCell = document.createElement("td");
+        titleCell.textContent = rule.title;
+        row.appendChild(titleCell);
+
+        const categoryCell = document.createElement("td");
+        const badge = document.createElement("span");
+        badge.className = "badge";
+        badge.textContent = rule.category;
+        categoryCell.appendChild(badge);
+        row.appendChild(categoryCell);
+
+        const sortCell = document.createElement("td");
+        sortCell.textContent = rule.sort_order;
+        row.appendChild(sortCell);
+
+        const contentCell = document.createElement("td");
+        contentCell.className = "content-cell";
+        contentCell.textContent = rule.content_zh.length > 120
+          ? `${rule.content_zh.slice(0, 120)}…`
+          : rule.content_zh;
+        row.appendChild(contentCell);
+
+        const actionsCell = document.createElement("td");
+        const actionsWrap = document.createElement("div");
+        actionsWrap.className = "row-actions";
+
+        const editButton = document.createElement("button");
+        editButton.type = "button";
+        editButton.className = "secondary small";
+        editButton.textContent = "編輯";
+        editButton.addEventListener("click", () => startEdit(rule));
+        actionsWrap.appendChild(editButton);
+
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className = "danger small";
+        deleteButton.textContent = "刪除";
+        deleteButton.addEventListener("click", () => deleteRule(rule.code));
+        actionsWrap.appendChild(deleteButton);
+
+        actionsCell.appendChild(actionsWrap);
+        row.appendChild(actionsCell);
+
+        ruleTableBody.appendChild(row);
+      }
+    }
+
+    async function loadCurrentUser() {
+      const response = await apiFetch("/api/me");
+      const data = await readJsonSafely(response);
+
+      if (!response.ok) {
+        throw new Error(errorMessage(data, "登入狀態失效"));
+      }
+
+      if (data.role !== "hr" && data.role !== "admin") {
+        throw new Error("此頁面只允許 hr 或 admin 角色使用");
+      }
+
+      showLoggedIn(data);
+      return data;
+    }
+
+    async function loadRules() {
+      refreshButton.disabled = true;
+      setStatus(listStatus, "讀取規章中…");
+
+      try {
+        const response = await apiFetch("/api/work-rules");
+        const data = await readJsonSafely(response);
+
+        if (!response.ok) {
+          throw new Error(errorMessage(data, `讀取失敗（${response.status}）`));
+        }
+
+        renderRules(data);
+        setStatus(listStatus, `共 ${data.length} 筆規章`, "ok");
+      } catch (error) {
+        setStatus(listStatus, error.message, "error");
+      } finally {
+        refreshButton.disabled = false;
+      }
+    }
+
+    async function deleteRule(code) {
+      if (!confirm(`確定要刪除規章 ${code} 嗎？（會從清單與 Chatbot 查詢中消失）`)) {
+        return;
+      }
+
+      try {
+        const response = await apiFetch(`/api/admin/work-rules/${encodeURIComponent(code)}`, {
+          method: "DELETE"
+        });
+
+        if (!response.ok) {
+          const data = await readJsonSafely(response);
+          throw new Error(errorMessage(data, `刪除失敗（${response.status}）`));
+        }
+
+        setStatus(listStatus, `規章 ${code} 已刪除`, "ok");
+        if (editingCode === code) resetForm();
+        await loadRules();
+      } catch (error) {
+        setStatus(listStatus, error.message, "error");
+      }
+    }
+
+    loginForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      loginButton.disabled = true;
+      setStatus(loginStatus, "登入中…");
+
+      try {
+        const account = document.getElementById("account").value.trim();
+        const password = document.getElementById("loginPassword").value;
+
+        const response = await fetch(`${API_BASE}/api/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ account, password })
+        });
+
+        const data = await readJsonSafely(response);
+
+        if (!response.ok) {
+          throw new Error(errorMessage(data, `登入失敗（${response.status}）`));
+        }
+
+        if (data.user?.role !== "hr" && data.user?.role !== "admin") {
+          throw new Error("此頁面只允許 hr 或 admin 角色登入");
+        }
+
+        setToken(data.access_token);
+        showLoggedIn(data.user);
+        setStatus(loginStatus, "");
+        await loadRules();
+      } catch (error) {
+        setToken("");
+        showLoggedOut();
+        setStatus(loginStatus, error.message, "error");
+      } finally {
+        loginButton.disabled = false;
+      }
+    });
+
+    ruleForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      saveButton.disabled = true;
+      setStatus(formStatus, editingCode ? "更新中…" : "新增中…");
+
+      const payload = {
+        title: ruleTitleInput.value.trim(),
+        category: ruleCategoryInput.value.trim(),
+        content_zh: ruleContentInput.value.trim(),
+        sort_order: Number(ruleSortOrderInput.value) || 0
+      };
+
+      try {
+        let response;
+
+        if (editingCode) {
+          response = await apiFetch(`/api/admin/work-rules/${encodeURIComponent(editingCode)}`, {
+            method: "PUT",
+            body: JSON.stringify(payload)
+          });
+        } else {
+          response = await apiFetch("/api/admin/work-rules", {
+            method: "POST",
+            body: JSON.stringify({
+              code: ruleCodeInput.value.trim().toUpperCase(),
+              ...payload
+            })
+          });
+        }
+
+        const data = await readJsonSafely(response);
+
+        if (!response.ok) {
+          throw new Error(errorMessage(data, `儲存失敗（${response.status}）`));
+        }
+
+        setStatus(formStatus, `規章 ${data.code} 已${editingCode ? "更新" : "新增"}成功`, "ok");
+        resetForm();
+        await loadRules();
+      } catch (error) {
+        setStatus(formStatus, error.message, "error");
+      } finally {
+        saveButton.disabled = false;
+      }
+    });
+
+    cancelEditButton.addEventListener("click", resetForm);
+    refreshButton.addEventListener("click", loadRules);
+
+    logoutButton.addEventListener("click", () => {
+      setToken("");
+      showLoggedOut();
+      setStatus(loginStatus, "已登出", "ok");
+    });
+
+    async function initialize() {
+      if (!getToken()) {
+        showLoggedOut();
+        return;
+      }
+
+      try {
+        await loadCurrentUser();
+        await loadRules();
+      } catch (error) {
+        setToken("");
+        showLoggedOut();
+        setStatus(loginStatus, error.message, "error");
+      }
+    }
+
+    initialize();
+  </script>
+</body>
+</html>
