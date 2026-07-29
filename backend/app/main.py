@@ -7,6 +7,7 @@ import secrets
 from pathlib import Path
 import threading
 import time
+import httpx
 from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from enum import Enum
@@ -22,7 +23,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import Boolean, Date, DateTime, Integer, String, Text, UniqueConstraint, create_engine, inspect, or_, select, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
-from .rag_service import chat_knowledge, search_knowledge
+from .rag_service import chat_knowledge, search_knowledge, _call_chat_completion
 from .schedule_service import (
     CalendarOverrideData,
     RotationSettingsData,
@@ -2331,12 +2332,40 @@ def _work_rules_chat_answer(message: str, language: str, db: Session) -> dict | 
 
     answer = f"{header}\n{best_rule.content_zh}"
     if language != "zh-TW":
-        note = {
-            "en": "\n\n(Note: the official rule text above is in Chinese only; ask HR for a translated copy if needed.)",
-            "th": "\n\n(หมายเหตุ: ข้อความระเบียบด้านบนเป็นภาษาจีนเท่านั้น กรุณาสอบถาม HR หากต้องการฉบับแปล)",
-        }.get(language)
-        if note:
-            answer += note
+        language_name = {"en": "English", "th": "Thai"}.get(language, language)
+        translated = None
+        try:
+            translated = _call_chat_completion(
+                [
+                    {
+                        "role": "system",
+                        "content": (
+                            f"Translate the following official company work-rule text into {language_name}. "
+                            "This is a legal/HR policy document: preserve every number, date, time, deadline, "
+                            "and named institution or role exactly as given, do not summarize or omit anything. "
+                            "Reply with ONLY the translated text, no quotes, no explanation."
+                        ),
+                    },
+                    {"role": "user", "content": best_rule.content_zh},
+                ],
+                temperature=0,
+            )
+        except (httpx.HTTPError, RuntimeError, ValueError) as exc:
+            print(f"[work_rules] Translation skipped (provider error): {exc}")
+
+        if translated:
+            translated_note = {
+                "en": "\n\n(Machine-translated from the Chinese original; the Chinese text is the authoritative version.)",
+                "th": "\n\n(แปลด้วยระบบอัตโนมัติจากต้นฉบับภาษาจีน หากมีข้อสงสัยให้ยึดตามต้นฉบับภาษาจีนเป็นหลัก)",
+            }.get(language, "")
+            answer = f"{header}\n{translated}{translated_note}"
+        else:
+            note = {
+                "en": "\n\n(Note: the official rule text above is in Chinese only; ask HR for a translated copy if needed.)",
+                "th": "\n\n(หมายเหตุ: ข้อความระเบียบด้านบนเป็นภาษาจีนเท่านั้น กรุณาสอบถาม HR หากต้องการฉบับแปล)",
+            }.get(language)
+            if note:
+                answer += note
     if runner_ups:
         related = "、".join(f"第 {r.code} 條" for r in runner_ups)
         suffix = {
