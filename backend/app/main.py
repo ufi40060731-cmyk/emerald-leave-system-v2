@@ -1574,6 +1574,32 @@ app.add_middleware(
 )
 
 
+def rotate_default_passwords() -> None:
+    """One-time-per-account cleanup: any user still on the seeded demo
+    password ("1234") gets a fresh random password. Self-guarding - once an
+    account is rotated, pwd_context.verify("1234", ...) will no longer match
+    it, so re-running this on every startup is a cheap no-op for already
+    rotated accounts. Gated behind ROTATE_DEFAULT_PASSWORDS so it only runs
+    when explicitly requested, and the new passwords are printed to the
+    deploy log exactly once (shown nowhere else - not stored in plaintext).
+    """
+    if os.getenv("ROTATE_DEFAULT_PASSWORDS", "").strip().lower() not in {"1", "true", "yes"}:
+        return
+    with SessionLocal() as db:
+        rotated: list[tuple[str, str]] = []
+        for user in db.scalars(select(User)):
+            if pwd_context.verify("1234", user.password_hash):
+                new_password = secrets.token_urlsafe(9)
+                user.password_hash = pwd_context.hash(new_password)
+                rotated.append((user.id, new_password))
+        if rotated:
+            db.commit()
+            print("\n=== EMERALD: default passwords rotated (shown once, save now) ===")
+            for user_id, new_password in rotated:
+                print(f"{user_id}: {new_password}")
+            print("=== end of rotated passwords ===\n")
+
+
 @app.on_event("startup")
 def startup() -> None:
     if SECRET_KEY == "change-this-before-production":
@@ -1586,6 +1612,7 @@ def startup() -> None:
             "beyond your own computer. See backend/.env.example.\n"
         )
     seed_demo_data()
+    rotate_default_passwords()
     bootstrap_calendar_years()
     start_holiday_scheduler()
 
