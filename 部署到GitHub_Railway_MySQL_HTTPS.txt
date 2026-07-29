@@ -1,0 +1,76 @@
+Emerald Leave System v16.3.5
+完整架構：GitHub + Railway FastAPI + Railway MySQL + HTTPS
+
+最終效果
+========
+使用者只需要開啟一個 HTTPS 網址，例如：
+https://你的服務.up.railway.app/
+
+同一個網址同時提供：
+- Emerald 網站
+- FastAPI
+- /api/docs
+- /api/health
+
+MySQL 不會直接連到瀏覽器，而是：
+瀏覽器 -> HTTPS FastAPI -> 私有 MySQL
+
+第一步：上傳 GitHub
+===================
+1. 建立新的空白 GitHub Repository。
+2. 使用 GitHub Desktop Clone。
+3. 將本資料夾「裡面的全部內容」複製到 Clone 資料夾。
+4. 確認可以看到 Dockerfile、railway.json、frontend、backend、rag。
+5. Commit to main。
+6. Push origin。
+
+第二步：Railway 建立完整專案
+============================
+1. 登入 Railway。
+2. New Project -> Deploy from GitHub repo。
+3. 選剛才的 Repository。
+4. 在同一個 Railway Project 按 + New -> Database -> MySQL。
+5. 如果資料庫服務名稱不是 MySQL，建議改名成 MySQL。
+
+第三步：設定 App Service Variables
+==================================
+在從 GitHub 建立的 App Service -> Variables 新增：
+
+DATABASE_URL=${{MySQL.MYSQL_URL}}
+EMERALD_SECRET=請放一組至少64字元的隨機密鑰
+HOLIDAY_SYNC_KEY=請放另一組至少64字元的隨機密鑰
+ACCESS_TOKEN_MINUTES=60
+CORS_ORIGINS=
+
+請勿把密鑰寫進 GitHub。
+
+第四步：取得 HTTPS
+==================
+App Service -> Settings -> Networking -> Public Networking
+按 Generate Domain。
+
+Railway 會產生：
+https://xxxx.up.railway.app
+
+HTTPS 憑證會自動建立與更新。
+
+檢查
+====
+網站：
+https://xxxx.up.railway.app/
+
+API 健康：
+https://xxxx.up.railway.app/api/health
+
+API 文件：
+https://xxxx.up.railway.app/api/docs
+
+展示初始帳號
+============
+E001 / 1234
+E002 / 1234
+M001 / 1234
+HR001 / 1234
+A001 / 1234
+
+正式使用前必須修改預設密碼。

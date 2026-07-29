@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Emerald 員工管理後台</title>
+  <style>
+    :root {
+      font-family: "Segoe UI", "Microsoft JhengHei", sans-serif;
+      color: #1f2937;
+      background: #f3f4f6;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #0f766e;
+      color: white;
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    header p {
+      margin: 4px 0 0;
+      opacity: 0.85;
+      font-size: 14px;
+    }
+
+    main {
+      width: min(1180px, calc(100% - 32px));
+      margin: 28px auto;
+    }
+
+    .card {
+      background: white;
+      border-radius: 14px;
+      padding: 22px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    }
+
+    h2 {
+      margin-top: 0;
+      font-size: 19px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .full { grid-column: 1 / -1; }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    input, select, button {
+      width: 100%;
+      min-height: 42px;
+      border-radius: 8px;
+      font: inherit;
+    }
+
+    input, select {
+      border: 1px solid #cbd5e1;
+      padding: 9px 11px;
+      background: white;
+    }
+
+    input:focus, select:focus {
+      outline: 2px solid #99f6e4;
+      border-color: #0f766e;
+    }
+
+    button {
+      border: 0;
+      padding: 9px 14px;
+      cursor: pointer;
+      font-weight: 700;
+      background: #0f766e;
+      color: white;
+    }
+
+    button:hover { filter: brightness(0.94); }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    .secondary {
+      width: auto;
+      background: #334155;
+    }
+
+    .danger {
+      width: auto;
+      background: #b91c1c;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .status {
+      min-height: 24px;
+      margin-top: 12px;
+      font-size: 14px;
+      white-space: pre-wrap;
+    }
+
+    .status.ok { color: #047857; }
+    .status.error { color: #b91c1c; }
+    .hidden { display: none !important; }
+
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 720px;
+    }
+
+    th, td {
+      border-bottom: 1px solid #e2e8f0;
+      padding: 11px 10px;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    th { background: #f8fafc; }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .top-info {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      font-size: 14px;
+    }
+
+    .muted {
+      color: #64748b;
+      font-size: 13px;
+    }
+
+    @media (max-width: 720px) {
+      .grid { grid-template-columns: 1fr; }
+
+      header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Emerald 員工管理後台</h1>
+      <p>FastAPI + SQLite</p>
+    </div>
+
+    <div id="sessionPanel" class="top-info hidden">
+      <span id="currentUser"></span>
+      <button id="logoutButton" class="danger" type="button">登出</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="loginCard" class="card">
+      <h2>管理員登入</h2>
+
+      <form id="loginForm" class="grid">
+        <div>
+          <label for="account">帳號</label>
+          <input id="account" value="A001" autocomplete="username" required>
+        </div>
+
+        <div>
+          <label for="loginPassword">密碼</label>
+          <input
+            id="loginPassword"
+            type="password"
+            value="1234"
+            autocomplete="current-password"
+            required
+          >
+        </div>
+
+        <div class="full">
+          <button id="loginButton" type="submit">登入後台</button>
+        </div>
+      </form>
+
+      <div id="loginStatus" class="status"></div>
+    </section>
+
+    <div id="adminArea" class="hidden">
+      <section class="card">
+        <h2>新增員工</h2>
+
+        <form id="createUserForm" class="grid">
+          <div>
+            <label for="userId">員工編號</label>
+            <input id="userId" maxlength="20" placeholder="例如 E004" required>
+          </div>
+
+          <div>
+            <label for="userName">姓名</label>
+            <input id="userName" maxlength="100" placeholder="例如 王小明" required>
+          </div>
+
+          <div>
+            <label for="role">角色</label>
+            <select id="role" required>
+              <option value="employee">員工 employee</option>
+              <option value="manager">主管 manager</option>
+              <option value="hr">人資 hr</option>
+              <option value="admin">管理員 admin</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="department">部門</label>
+            <input id="department" maxlength="80" value="Production" required>
+          </div>
+
+          <div>
+            <label for="rotationGroup">輪班組別</label>
+            <select id="rotationGroup" required>
+              <option value="A">A 組</option>
+              <option value="B">B 組</option>
+              <option value="NONE">不輪班 NONE</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="newPassword">初始密碼（至少 8 碼）</label>
+            <input
+              id="newPassword"
+              type="password"
+              minlength="8"
+              autocomplete="new-password"
+              required
+            >
+          </div>
+
+          <div class="full">
+            <button id="createButton" type="submit">建立帳號</button>
+          </div>
+        </form>
+
+        <div id="createStatus" class="status"></div>
+      </section>
+
+      <section class="card">
+        <div class="actions">
+          <h2 style="margin: 0; flex: 1;">員工清單</h2>
+          <button id="refreshButton" class="secondary" type="button">重新整理</button>
+        </div>
+
+        <p class="muted">清單不會顯示密碼或密碼雜湊。</p>
+        <div id="listStatus" class="status"></div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>員工編號</th>
+                <th>姓名</th>
+                <th>角色</th>
+                <th>部門</th>
+                <th>輪班</th>
+              </tr>
+            </thead>
+            <tbody id="userTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    "use strict";
+
+    const API_BASE = (location.protocol === "http:" || location.protocol === "https:") ? location.origin : "";
+    const TOKEN_KEY = "emerald_admin_access_token";
+
+    const loginCard = document.getElementById("loginCard");
+    const adminArea = document.getElementById("adminArea");
+    const sessionPanel = document.getElementById("sessionPanel");
+    const currentUser = document.getElementById("currentUser");
+
+    const loginForm = document.getElementById("loginForm");
+    const createUserForm = document.getElementById("createUserForm");
+
+    const loginStatus = document.getElementById("loginStatus");
+    const createStatus = document.getElementById("createStatus");
+    const listStatus = document.getElementById("listStatus");
+
+    const userTableBody = document.getElementById("userTableBody");
+
+    const loginButton = document.getElementById("loginButton");
+    const createButton = document.getElementById("createButton");
+    const refreshButton = document.getElementById("refreshButton");
+    const logoutButton = document.getElementById("logoutButton");
+
+    function setStatus(element, message, type = "") {
+      element.textContent = message;
+      element.className = `status ${type}`.trim();
+    }
+
+    function getToken() {
+      return sessionStorage.getItem(TOKEN_KEY) || "";
+    }
+
+    function setToken(token) {
+      if (token) {
+        sessionStorage.setItem(TOKEN_KEY, token);
+      } else {
+        sessionStorage.removeItem(TOKEN_KEY);
+      }
+    }
+
+    async function readJsonSafely(response) {
+      const text = await response.text();
+
+      if (!text) {
+        return {};
+      }
+
+      try {
+        return JSON.parse(text);
+      } catch {
+        return { detail: text };
+      }
+    }
+
+    function errorMessage(data, fallback) {
+      if (typeof data?.detail === "string") {
+        return data.detail;
+      }
+
+      if (Array.isArray(data?.detail)) {
+        return data.detail
+          .map(item => item.msg || JSON.stringify(item))
+          .join("\n");
+      }
+
+      return fallback;
+    }
+
+    async function apiFetch(path, options = {}) {
+      const token = getToken();
+      const headers = new Headers(options.headers || {});
+
+      if (options.body && !headers.has("Content-Type")) {
+        headers.set("Content-Type", "application/json");
+      }
+
+      if (token) {
+        headers.set("Authorization", `Bearer ${token}`);
+      }
+
+      return fetch(`${API_BASE}${path}`, {
+        ...options,
+        headers
+      });
+    }
+
+    function showLoggedOut() {
+      loginCard.classList.remove("hidden");
+      adminArea.classList.add("hidden");
+      sessionPanel.classList.add("hidden");
+      currentUser.textContent = "";
+      userTableBody.innerHTML = "";
+    }
+
+    function showLoggedIn(user) {
+      loginCard.classList.add("hidden");
+      adminArea.classList.remove("hidden");
+      sessionPanel.classList.remove("hidden");
+      currentUser.textContent = `${user.id}｜${user.name}｜${user.role}`;
+    }
+
+    function renderUsers(users) {
+      userTableBody.innerHTML = "";
+
+      for (const user of users) {
+        const row = document.createElement("tr");
+        const values = [
+          user.id,
+          user.name,
+          user.role,
+          user.department,
+          user.rotation_group
+        ];
+
+        values.forEach((value, index) => {
+          const cell = document.createElement("td");
+
+          if (index === 2 || index === 4) {
+            const badge = document.createElement("span");
+            badge.className = "badge";
+            badge.textContent = value;
+            cell.appendChild(badge);
+          } else {
+            cell.textContent = value;
+          }
+
+          row.appendChild(cell);
+        });
+
+        userTableBody.appendChild(row);
+      }
+    }
+
+    async function loadCurrentUser() {
+      const response = await apiFetch("/api/me");
+      const data = await readJsonSafely(response);
+
+      if (!response.ok) {
+        throw new Error(
+          errorMessage(data, "登入狀態失效")
+        );
+      }
+
+      if (data.role !== "admin") {
+        throw new Error("此頁面只允許管理員使用");
+      }
+
+      showLoggedIn(data);
+      return data;
+    }
+
+    async function loadUsers() {
+      refreshButton.disabled = true;
+      setStatus(listStatus, "讀取員工資料中…");
+
+      try {
+        const response = await apiFetch("/api/admin/users");
+        const data = await readJsonSafely(response);
+
+        if (!response.ok) {
+          throw new Error(
+            errorMessage(data, `讀取失敗（${response.status}）`)
+          );
+        }
+
+        renderUsers(data);
+        setStatus(listStatus, `共 ${data.length} 個帳號`, "ok");
+      } catch (error) {
+        setStatus(listStatus, error.message, "error");
+      } finally {
+        refreshButton.disabled = false;
+      }
+    }
+
+    loginForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      loginButton.disabled = true;
+      setStatus(loginStatus, "登入中…");
+
+      try {
+        const account = document
+          .getElementById("account")
+          .value
+          .trim();
+
+        const password = document
+          .getElementById("loginPassword")
+          .value;
+
+        const response = await fetch(
+          `${API_BASE}/api/auth/login`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              account,
+              password
+            })
+          }
+        );
+
+        const data = await readJsonSafely(response);
+
+        if (!response.ok) {
+          throw new Error(
+            errorMessage(data, `登入失敗（${response.status}）`)
+          );
+        }
+
+        if (data.user?.role !== "admin") {
+          throw new Error("此頁面只允許管理員登入");
+        }
+
+        setToken(data.access_token);
+        showLoggedIn(data.user);
+        setStatus(loginStatus, "");
+        await loadUsers();
+      } catch (error) {
+        setToken("");
+        showLoggedOut();
+        setStatus(loginStatus, error.message, "error");
+      } finally {
+        loginButton.disabled = false;
+      }
+    });
+
+    createUserForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      createButton.disabled = true;
+      setStatus(createStatus, "建立帳號中…");
+
+      const payload = {
+        id: document
+          .getElementById("userId")
+          .value
+          .trim()
+          .toUpperCase(),
+
+        name: document
+          .getElementById("userName")
+          .value
+          .trim(),
+
+        role: document.getElementById("role").value,
+
+        department: document
+          .getElementById("department")
+          .value
+          .trim(),
+
+        rotation_group:
+          document.getElementById("rotationGroup").value,
+
+        password:
+          document.getElementById("newPassword").value
+      };
+
+      try {
+        const response = await apiFetch(
+          "/api/admin/users",
+          {
+            method: "POST",
+            body: JSON.stringify(payload)
+          }
+        );
+
+        const data = await readJsonSafely(response);
+
+        if (!response.ok) {
+          throw new Error(
+            errorMessage(data, `建立失敗（${response.status}）`)
+          );
+        }
+
+        setStatus(
+          createStatus,
+          `帳號 ${data.id} 建立成功`,
+          "ok"
+        );
+
+        createUserForm.reset();
+        document.getElementById("department").value =
+          "Production";
+
+        await loadUsers();
+      } catch (error) {
+        setStatus(createStatus, error.message, "error");
+      } finally {
+        createButton.disabled = false;
+      }
+    });
+
+    refreshButton.addEventListener("click", loadUsers);
+
+    logoutButton.addEventListener("click", () => {
+      setToken("");
+      showLoggedOut();
+      setStatus(loginStatus, "已登出", "ok");
+    });
+
+    async function initialize() {
+      if (!getToken()) {
+        showLoggedOut();
+        return;
+      }
+
+      try {
+        await loadCurrentUser();
+        await loadUsers();
+      } catch (error) {
+        setToken("");
+        showLoggedOut();
+        setStatus(loginStatus, error.message, "error");
+      }
+    }
+
+    initialize();
+  </script>
+</body>
+</html>

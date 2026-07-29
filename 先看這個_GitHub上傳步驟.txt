@@ -1,0 +1,25 @@
+GitHub Repository:
+https://github.com/d1124181042-arch/emerald-leave-system-v2
+
+請先將本 ZIP 全部解壓縮。
+
+在 GitHub 的 Upload files 頁面：
+1. 打開解壓後的 Emerald_Leave_System_v16.3.6_GitHub_Upload_Ready 資料夾。
+2. 按 Ctrl+A 選取「資料夾裡面的全部內容」。
+3. 將選取內容拖到 GitHub 的 Drag files here 區域。
+4. 確認清單保留以下路徑：
+   .github/workflows/
+   backend/app/
+   frontend/
+   rag/
+   database/
+   Dockerfile
+   railway.json
+5. Commit message 填：
+   Deploy full-stack FastAPI MySQL HTTPS application
+6. 點 Commit changes。
+
+注意：
+- 不要只上傳 ZIP。
+- 不要進入 backend、frontend 後再選散落檔案，否則資料夾會被攤平。
+- 不要上傳 .env 或資料庫檔案。

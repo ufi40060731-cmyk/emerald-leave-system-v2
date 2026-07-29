@@ -1,0 +1,14 @@
+EMERALD ENTERPRISE HR + SOP v16.3.1
+
+IMPORTANT — USE THE NEW EXTRACTED FOLDER
+1. Close any older Emerald page.
+2. Delete or rename the previously extracted v16.2/v16.3 folder.
+3. Fully extract this ZIP to a normal folder such as Desktop\Emerald_v16.3.1.
+4. Open frontend\index.html from that extracted folder. Do not open index.html inside the ZIP preview or an old AppData\Local\Temp folder.
+5. Confirm that “v16.3.1” appears below the company name in the upper-left sidebar.
+6. Demo accounts: E001, E002, M001, HR001, A001 / password 1234.
+7. Change the language at the upper-right. The sidebar, user role, page title, page content, tables, notifications, onboarding checklist, and quiz should switch together.
+
+If old browser data still causes unusual content, click Settings and save the language again. For a complete demo reset, clear this page's local storage in the browser developer tools.
+
+Production note: GitHub Pages hosts only the static front end. Do not use the demo login or browser storage for real employee data. Deploy the backend, enable production mode, HTTPS, secrets, access controls, backups, and official HR policies.

@@ -1,0 +1,16 @@
+.git
+.github
+.env
+backend/.env
+data/
+backend/data/
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+*.db
+*.sqlite
+*.sqlite3
+*.bak
+*.orig
+* (1).py

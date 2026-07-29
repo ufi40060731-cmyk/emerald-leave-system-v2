@@ -1,0 +1,22 @@
+.env
+backend/.env
+
+data/
+backend/data/
+*.db
+*.sqlite
+*.sqlite3
+
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+
+*.bak
+*.orig
+* (1).py
+
+.DS_Store
+Thumbs.db
+
+rag/documents/private/

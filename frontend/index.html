@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Emerald enterprise HR portal with multilingual SOP onboarding, attendance, leave, RAG chatbot, and Saturday rotation">
+  <meta name="emerald-build" content="v16.3.1-language-switch-fix">
+  <title>Emerald 企業人資與 SOP 平台</title>
+  <style>
+:root{--brand:#226b52;--brand2:#154837;--accent:#dff2e9;--bg:#f3f6f9;--card:#fff;--text:#1d2939;--muted:#667085;--line:#dfe5ec;--danger:#b42318;--shadow:0 12px 34px rgba(21,45,60,.08)}
+body.dark{--bg:#101820;--card:#18242e;--text:#eef4f8;--muted:#9eb0bf;--line:#2b3c49;--accent:#1c3c31;--shadow:none}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Inter,Arial,"Noto Sans",sans-serif;background:var(--bg);color:var(--text)}button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:none!important}
+.login-shell{min-height:100vh;display:grid;place-items:center;padding:24px;background:linear-gradient(135deg,#eaf7f1,#eef3fb)}
+.login-panel{width:min(470px,100%);background:white;padding:32px;border-radius:24px;box-shadow:0 28px 80px rgba(35,70,85,.18)}.login-panel h1{margin:12px 0 5px}.login-panel p{color:#667085}.brand-mark{width:54px;height:54px;border-radius:16px;display:grid;place-items:center;background:var(--brand);color:white;font-size:28px;font-weight:900}.brand-mark.small{width:38px;height:38px;border-radius:11px;font-size:20px}.login-panel label,.form-card label{display:block;font-weight:700;margin:14px 0 7px}.login-panel input,.login-panel select,.form-card input,.form-card select,.form-card textarea,.top-actions input,.top-actions select,.chat-input input{width:100%;border:1px solid var(--line);background:var(--card);color:var(--text);padding:11px 12px;border-radius:10px}.login-panel select,.login-panel select option{color:#1d2939!important;background:#fff!important}.language-quick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}.language-quick button{border:1px solid var(--line);background:#fff;color:#1d2939;border-radius:9px;padding:8px 6px;font-weight:700}.language-quick button.active{border-color:var(--brand);background:var(--accent);color:var(--brand2)}.full{width:100%;margin-top:18px}.demo-note{font-size:13px;color:#667085;margin-top:14px}.error{color:var(--danger);margin-top:10px}
+.primary,.soft,.ghost{border:0;border-radius:10px;padding:10px 14px}.primary{background:var(--brand);color:white}.soft{background:var(--accent);color:var(--brand2)}.ghost{background:transparent;color:inherit;border:1px solid var(--line)}
+.app{display:grid;grid-template-columns:255px minmax(0,1fr);min-height:100vh}.sidebar{background:var(--brand2);color:white;padding:20px 16px;display:flex;flex-direction:column}.brand-row{display:flex;align-items:center;gap:10px;margin-bottom:20px}.brand-row small{display:block;opacity:.72;font-size:10px;max-width:145px}.brand-row .build-version{margin-top:3px;opacity:.95;font-weight:800;letter-spacing:.02em}.user-card{padding:13px;border-radius:12px;background:rgba(255,255,255,.09);margin-bottom:15px}.user-card span{display:block;opacity:.75;margin-top:4px;font-size:13px}nav button{display:block;width:100%;border:0;background:transparent;color:#d6e5df;text-align:start;padding:11px 12px;border-radius:9px;margin:3px 0}nav button:hover,nav button.active{background:rgba(255,255,255,.13);color:white}.sidebar-logout{margin-top:auto;color:white;border-color:rgba(255,255,255,.25)}
+main{padding:22px;min-width:0}.topbar{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:18px}.topbar h2{margin:0}.topbar p{margin:5px 0;color:var(--muted)}.top-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.top-actions input{width:190px}.top-actions select{width:auto}.top-actions button{white-space:nowrap}
+.page{display:none}.page.active{display:block}.announcement{background:var(--accent);border-inline-start:4px solid var(--brand);padding:13px 15px;border-radius:10px;margin-bottom:15px;display:flex;gap:12px;flex-wrap:wrap}.card{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:18px;box-shadow:var(--shadow);margin-bottom:16px}.card h3{margin-top:0}.kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.kpi strong{font-size:28px;color:var(--brand)}.kpi span{display:block;color:var(--muted);margin-top:7px}.split{display:grid;grid-template-columns:1.2fr 1fr;gap:16px}.quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.section-head{display:flex;justify-content:space-between;align-items:center;gap:12px}.bars{display:flex;align-items:flex-end;gap:14px;height:170px;padding-top:16px}.bars.large{height:240px}.bar{flex:1;min-width:24px;background:linear-gradient(#4e9d7d,#226b52);border-radius:8px 8px 3px 3px;position:relative}.bar span{position:absolute;bottom:-25px;width:100%;text-align:center;color:var(--muted);font-size:12px}.big-date{font-size:34px;font-weight:800;color:var(--brand)}.progress{height:12px;background:var(--line);border-radius:999px;overflow:hidden}.progress span{display:block;height:100%;background:var(--brand)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.form-card textarea{min-height:88px;resize:vertical}.form-card button{margin-top:15px}.form-card span{margin-inline-start:10px;color:var(--brand)}.calculation-box{margin:15px 0;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}.calculation-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:10px 0}.calculation-grid span{margin:0;color:var(--muted);font-size:12px}.calculation-grid b{display:block;color:var(--text);font-size:22px;margin-top:3px}.calculation-grid .deduct-total{background:var(--accent);padding:8px;border-radius:9px}.rotation-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:end}.checkbox-row{display:flex;gap:8px;align-items:center;padding:10px 0}.checkbox-row input{width:auto}.rotation-summary{padding:12px;border-radius:10px;background:var(--accent);font-weight:800;color:var(--brand2);margin-bottom:12px}.override-grid{display:grid;grid-template-columns:1fr 1fr 1fr 2fr auto;gap:9px;align-items:end}.override-grid label{font-size:12px;color:var(--muted)}
+.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:700px}th,td{text-align:start;padding:11px 9px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-size:13px}.badge{display:inline-block;padding:5px 9px;border-radius:999px;font-size:12px;font-weight:700}.approved{background:#dff7e9;color:#17633f}.pending{background:#fff2ce;color:#7c5700}.rejected{background:#fee4e2;color:#a52b20}.row-actions{display:flex;gap:6px}
+.calendar-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin:8px 0;color:var(--muted);font-size:12px;font-weight:700;text-align:center}.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}.day{min-height:85px;border:1px solid var(--line);border-radius:10px;padding:8px;background:var(--card)}.day.muted{opacity:.35}.day.holiday{border-color:#d4a72c;background:#fff8dc}.day.leave{border-color:#4e9d7d;background:var(--accent)}.day b{display:block}.day small{display:block;margin-top:8px;color:var(--muted)}.day.rotation-work{border-color:#32936f;background:#e8f7ef}.day.rotation-off{border-color:#7b8fa1;background:#edf2f6}.day.sunday-off{background:#f6f7f9}.calendar-legend{display:flex;flex-wrap:wrap;gap:12px;margin:10px 0;color:var(--muted);font-size:12px}.legend-dot{width:10px;height:10px;border-radius:3px;display:inline-block;margin-inline-end:5px}.legend-dot.work{background:#32936f}.legend-dot.off{background:#7b8fa1}.legend-dot.holiday{background:#d4a72c}
+.calendar-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.calendar-title{font-weight:800;color:var(--brand);margin-top:3px}.sync-meta{display:block;color:var(--muted);font-size:12px;margin-top:4px}.calendar-hint{display:block;color:var(--muted);margin:0 0 12px}
+.ai-card{max-width:900px}.chat{height:min(56vh,520px);min-height:340px;overflow:auto;background:var(--bg);border-radius:12px;padding:15px;scroll-behavior:smooth}.bubble{max-width:82%;padding:11px 13px;border-radius:13px;margin:8px 0;white-space:pre-wrap;line-height:1.55}.bubble.bot{background:var(--accent)}.bubble.user{background:var(--brand);color:white;margin-inline-start:auto}.bubble.pending{opacity:.7}.chat-toolbar{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.chat-status{margin:4px 0 0;color:var(--muted);font-size:13px}.chat-suggestions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.chat-suggestions button{font-size:13px}.chat-input{display:flex;gap:8px;margin-top:12px;align-items:flex-end}.chat-input textarea{flex:1;min-height:46px;max-height:130px;resize:vertical;border:1px solid var(--line);background:var(--card);color:var(--text);padding:11px 12px;border-radius:10px}.chat-note{display:block;color:var(--muted);font-size:12px;margin-top:8px}.source-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.source-chip{display:inline-block;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px 8px;font-size:11px;color:var(--muted)}.upload-box{border:2px dashed var(--line);padding:28px;border-radius:14px;text-align:center}.button-row{display:flex;justify-content:center;gap:9px;margin-top:15px}.empty-state{text-align:center;color:var(--muted);padding:45px;font-size:20px}.notification-summary{margin:4px 0 0;color:var(--muted)}.notification-list{display:grid;gap:12px;margin-top:16px}.notification-card{display:grid;grid-template-columns:auto minmax(0,1fr);gap:13px;border:1px solid var(--line);border-radius:14px;padding:15px;background:var(--card)}.notification-card.unread{border-inline-start:5px solid #d4a72c;background:linear-gradient(90deg,#fff8dc,var(--card) 28%)}.notification-card.read{opacity:.82}.notification-icon{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:var(--accent);font-size:22px}.notification-title-row{display:flex;align-items:center;justify-content:space-between;gap:10px}.notification-title-row h4{margin:0}.notification-message{font-weight:700;margin:8px 0}.notification-meta{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:12px;margin-bottom:7px}.notification-body small{display:block;color:var(--muted);line-height:1.5}.notification-read{margin-top:10px}.nav-count{float:inline-end;min-width:22px;height:22px;padding:0 6px;border-radius:999px;display:inline-grid;place-items:center;background:#fff2ce;color:#7c5700;font-size:12px;font-weight:800}
+
+.onboarding-hero{background:linear-gradient(135deg,var(--card),var(--accent));border-inline-start:5px solid var(--brand)}.onboarding-hero h3{font-size:25px;margin-bottom:7px}.onboarding-hero p{color:var(--muted);line-height:1.6}.company-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:16px}.fact{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px}.fact b{display:block;margin-bottom:6px;color:var(--brand)}.fact span,.fact small{display:block;color:var(--muted);line-height:1.45}.checklist{display:grid;gap:9px;margin-top:14px}.check-item{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:11px;padding:11px;background:var(--bg)}.check-item input{margin-top:3px;accent-color:var(--brand);width:18px;height:18px}.check-item.done span{text-decoration:line-through;color:var(--muted)}.policy-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}.policy-card{border:1px solid var(--line);border-radius:13px;padding:15px;background:var(--bg)}.policy-card h4{margin:8px 0}.policy-card p{color:var(--muted);line-height:1.55;min-height:72px}.policy-card button{margin-top:5px}.contact-list{display:grid;gap:10px}.contact-item{border:1px solid var(--line);border-radius:11px;padding:12px;background:var(--bg)}.onboarding-note{color:var(--muted);font-size:13px;line-height:1.55}.source-note{display:inline-block;margin-top:10px;color:var(--muted);font-size:12px}
+
+.enterprise-banner{background:linear-gradient(135deg,var(--brand2),var(--brand));color:white;border-radius:15px;padding:16px 18px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:15px}.enterprise-banner p{margin:4px 0 0;opacity:.88}.enterprise-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px}.enterprise-kpi{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:14px}.enterprise-kpi strong{display:block;font-size:27px;color:var(--brand)}.enterprise-kpi span{color:var(--muted);font-size:13px}.journey-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin-top:14px}.journey-step{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--bg)}.journey-step b{display:block;color:var(--brand);margin-bottom:7px}.sop-toolbar{display:grid;grid-template-columns:2fr 1fr auto;gap:10px;align-items:center;margin:14px 0}.sop-toolbar input,.sop-toolbar select{width:100%;border:1px solid var(--line);background:var(--card);color:var(--text);padding:11px 12px;border-radius:10px}.sop-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.sop-card{border:1px solid var(--line);border-radius:14px;padding:15px;background:var(--bg)}.sop-card.completed{border-color:#56a782;background:var(--accent)}.sop-card-head,.sop-actions,.sop-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}.sop-card h4{margin:12px 0 7px}.sop-card p{color:var(--muted);line-height:1.55;min-height:66px}.sop-meta{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}.sop-actions{justify-content:flex-start;margin-top:12px}.sop-card small{display:block;color:var(--muted);margin-top:9px}.quiz-grid{display:grid;gap:10px;margin:12px 0}.quiz-question{border:1px solid var(--line);border-radius:11px;padding:12px;background:var(--bg)}.quiz-question p{margin:0 0 8px}.quiz-options{display:flex;gap:18px}.attendance-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.attendance-kpis .card{margin-bottom:0}.correction-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:end}.correction-grid input{width:100%;border:1px solid var(--line);background:var(--card);color:var(--text);padding:10px;border-radius:9px}.correction-grid .wide{grid-column:span 2}
+
+[dir=rtl] .app{grid-template-columns:minmax(0,1fr) 255px}[dir=rtl] .sidebar{grid-column:2}[dir=rtl] main{grid-column:1;grid-row:1}
+@media(max-width:920px){.enterprise-kpis,.attendance-kpis,.journey-grid,.sop-grid{grid-template-columns:1fr 1fr}.company-facts{grid-template-columns:1fr}.policy-grid{grid-template-columns:1fr}.app{grid-template-columns:1fr}.sidebar{grid-column:auto!important}.sidebar nav{display:grid;grid-template-columns:repeat(3,1fr)}main{grid-column:auto!important;grid-row:auto!important}.kpi-grid{grid-template-columns:repeat(2,1fr)}.split{grid-template-columns:1fr}.topbar{flex-direction:column}}
+@media(max-width:560px){.enterprise-kpis,.attendance-kpis,.journey-grid,.sop-grid,.sop-toolbar,.correction-grid{grid-template-columns:1fr}.correction-grid .wide{grid-column:auto}main{padding:13px}.sidebar nav{grid-template-columns:repeat(2,1fr)}.kpi-grid,.form-grid,.calculation-grid,.rotation-controls,.override-grid{grid-template-columns:1fr}.top-actions{width:100%}.top-actions input{width:100%}.calendar-grid{gap:4px}.day{min-height:65px;padding:5px}.quick-grid{grid-template-columns:1fr}}
+
+
+.content-manager{margin-top:16px;border-top:1px dashed var(--line);padding-top:16px}.content-manager-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}.content-manager-head h4{margin:0 0 5px}.manager-form{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:9px;align-items:center;margin:12px 0}.manager-form.quiz-manager-form{grid-template-columns:minmax(0,1fr) minmax(130px,.35fr) auto auto}.manager-form input,.manager-form select,.score-form input{width:100%;border:1px solid var(--line);background:var(--card);color:var(--text);padding:10px 11px;border-radius:9px}.manager-list{display:grid;gap:8px;margin-top:12px}.manager-row{display:grid;grid-template-columns:32px minmax(0,1fr) auto;align-items:center;gap:10px;border:1px solid var(--line);border-radius:11px;padding:10px;background:var(--bg)}.manager-index{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--brand);font-weight:800}.manager-text{line-height:1.45}.manager-text small{display:block;color:var(--muted);margin-top:4px}.manager-actions{display:flex;gap:7px;flex-wrap:wrap}.danger{color:#b42318;border-color:#f0b4ae}.manager-message{min-height:22px;color:var(--brand);font-size:13px;margin:8px 0}.manager-message.manager-error{color:#b42318}.score-form{display:grid;grid-template-columns:minmax(130px,220px) auto;gap:9px;align-items:end;margin:12px 0}.score-form label{display:grid;gap:6px}.content-manager .source-note{display:block}.section-head .manager-toggle{white-space:nowrap}.translation-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0}.translation-grid label{display:grid;gap:6px;font-size:13px;font-weight:700}.translation-grid textarea{width:100%;min-height:84px;resize:vertical;border:1px solid var(--line);background:var(--card);color:var(--text);padding:10px 11px;border-radius:9px}.manager-editor-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:10px 0}.manager-editor-actions select{min-width:150px;border:1px solid var(--line);background:var(--card);color:var(--text);padding:10px 11px;border-radius:9px}
+</style>
+<style>@media(max-width:760px){.manager-form,.manager-form.quiz-manager-form,.score-form,.translation-grid{grid-template-columns:1fr}.manager-row{grid-template-columns:32px 1fr}.manager-actions{grid-column:2}.content-manager-head{flex-direction:column}.section-head{align-items:flex-start}}</style></head>
+<body>
+<section id="loginView" class="login-shell">
+  <div class="login-panel">
+    <div class="brand-mark">E</div>
+    <h1 data-i18n="app_name">Emerald 企業人資與 SOP 平台</h1>
+    <p data-i18n="subtitle">企業人資、出勤、請假與新人 SOP 一站式平台</p>
+    <label data-i18n="language">語言</label>
+    <select id="loginLanguage" data-i18n-aria-label="language">
+      <option value="zh-TW" selected>繁體中文</option>
+      <option value="en">English</option>
+      <option value="th">ไทย</option>
+    </select>
+    <div class="language-quick" data-i18n-aria-label="language_quick_selection">
+      <button type="button" data-language-choice="zh-TW">繁體中文</button>
+      <button type="button" data-language-choice="en">English</button>
+      <button type="button" data-language-choice="th">ไทย</button>
+    </div>
+    <label data-i18n="account">帳號</label>
+    <input id="loginId" value="HR001" autocomplete="username">
+    <label data-i18n="password">密碼</label>
+    <input id="loginPassword" value="1234" type="password" autocomplete="current-password">
+    <button class="primary full" id="loginButton" data-i18n="login">登入</button>
+    <div class="demo-note"><span data-i18n="demo">示範帳號</span>：E001 / E002 / M001 / HR001 / A001 · 1234</div>
+    <div id="loginError" class="error"></div>
+  </div>
+</section>
+
+<section id="appView" class="app hidden">
+  <aside class="sidebar">
+    <div class="brand-row"><div class="brand-mark small">E</div><div><b>Emerald</b><small data-i18n="company">Emerald Nonwovens</small><small class="build-version">v16.3.1</small></div></div>
+    <div class="user-card"><b id="userName"></b><span id="userRole"></span></div>
+    <nav id="mainNav"></nav>
+    <button class="ghost sidebar-logout" id="logoutButton" data-i18n="logout">登出</button>
+  </aside>
+
+  <main>
+    <header class="topbar">
+      <div>
+        <h2 id="pageTitle" data-i18n="dashboard">儀表板</h2>
+        <p data-i18n="welcome">歡迎使用 Emerald 請假管理系統</p>
+      </div>
+      <div class="top-actions">
+        <input id="globalSearch" data-i18n-placeholder="search" placeholder="搜尋">
+        <select id="topLanguage"><option value="zh-TW">繁體中文</option><option value="en">English</option><option value="th">ไทย</option></select>
+        <button class="ghost" id="themeButton">◐ <span data-i18n="theme">深色模式</span></button>
+      </div>
+    </header>
+
+    <section class="page active" data-page="dashboard">
+      <div class="enterprise-banner"><div><b data-i18n="enterprise_sop"></b><p data-i18n="enterprise_notice"></p></div><button class="soft" data-go="sops" data-i18n="sop_center"></button></div>
+      <div class="enterprise-kpis"><div class="enterprise-kpi"><strong id="enterpriseSopPercent">0%</strong><span data-i18n="sop_completion_rate"></span></div><div class="enterprise-kpi"><strong id="enterpriseAttendanceRate">96%</strong><span data-i18n="attendance_rate"></span></div><div class="enterprise-kpi"><strong id="enterpriseSopPending">0</strong><span data-i18n="sop_acknowledge"></span></div></div>
+      <div class="announcement"><b data-i18n="announcement">公司公告</b><span data-i18n="announcement_text"></span></div>
+      <div class="kpi-grid">
+        <article class="card kpi"><strong>12</strong><span data-i18n="balance"></span></article>
+        <article class="card kpi"><strong id="pendingCount">2</strong><span data-i18n="pending"></span></article>
+        <article class="card kpi"><strong>86</strong><span data-i18n="total_employees"></span></article>
+        <article class="card kpi"><strong>94%</strong><span data-i18n="approval_rate"></span></article>
+      </div>
+      <div class="split">
+        <article class="card"><h3 data-i18n="leave_trend"></h3><div class="bars" id="trendBars"></div></article>
+        <article class="card"><h3 data-i18n="quick_actions"></h3><div class="quick-grid">
+          <button class="soft" data-go="apply" data-i18n="apply"></button>
+          <button class="soft" data-go="calendar" data-i18n="calendar"></button>
+          <button class="soft" data-go="onboarding" data-i18n="onboarding"></button>
+          <button class="soft" data-go="attendance" data-i18n="attendance"></button>
+          <button class="soft" data-go="ai" data-i18n="ask_ai"></button>
+          <button class="soft" data-go="reports" data-i18n="reports"></button>
+        </div></article>
+      </div>
+      <div class="split">
+        <article class="card"><h3 data-i18n="next_holiday"></h3><p class="big-date" id="nextHolidayDate">—</p><p id="nextHolidayName">—</p></article>
+        <article class="card"><h3 data-i18n="department_quota"></h3><div class="progress"><span style="width:68%"></span></div><p><span data-i18n="production"></span> 68%</p></article>
+      </div>
+    </section>
+
+
+    <section class="page" data-page="onboarding">
+      <article class="card onboarding-hero">
+        <span class="badge approved" data-i18n="onboarding"></span>
+        <h3 data-i18n="onboarding_title"></h3>
+        <p data-i18n="onboarding_intro"></p>
+        <div class="company-facts">
+          <div class="fact"><b data-i18n="company_profile"></b><span data-i18n="company_legal_name"></span><small data-i18n="company_profile_summary"></small></div>
+          <div class="fact"><b data-i18n="company_location"></b><span data-i18n="company_address_value"></span></div>
+          <div class="fact"><b data-i18n="public_hours"></b><span data-i18n="public_hours_value"></span><small data-i18n="public_hours_note"></small></div>
+        </div>
+        <div class="fact" style="margin-top:10px"><b data-i18n="company_products"></b><span data-i18n="company_products_value"></span></div>
+        <small class="source-note" data-i18n="official_source"></small>
+        <h4 style="margin:18px 0 0" data-i18n="onboarding_path"></h4>
+        <div class="journey-grid"><div class="journey-step"><b>01</b><span data-i18n="onboarding_day1"></span></div><div class="journey-step"><b>07</b><span data-i18n="onboarding_week1"></span></div><div class="journey-step"><b>30</b><span data-i18n="onboarding_day30"></span></div></div>
+      </article>
+
+      <div class="split">
+        <article class="card">
+          <div class="section-head"><h3 data-i18n="onboarding_checklist"></h3><div class="manager-actions"><strong id="onboardingProgressText"></strong><button type="button" id="toggleOnboardingManager" class="soft manager-toggle" hidden></button></div></div>
+          <div class="progress"><span id="onboardingProgressBar" style="width:0%"></span></div>
+          <div id="onboardingChecklist" class="checklist"></div>
+          <p class="onboarding-note" data-i18n="onboarding_saved"></p>
+          <button class="ghost" id="resetOnboarding" data-i18n="onboarding_reset"></button>
+          <div id="onboardingManager" class="content-manager hidden">
+            <div class="content-manager-head"><div><h4 data-i18n="onboarding_manager_title"></h4><p class="onboarding-note" data-i18n="onboarding_manager_note"></p></div><button type="button" id="restoreOnboardingDefaults" class="ghost" data-i18n="content_restore_defaults"></button></div>
+            <input type="hidden" id="onboardingEditId">
+            <p class="source-note" data-i18n="translation_fields_note"></p>
+            <div class="translation-grid">
+              <label><span data-i18n="translation_zh_tw"></span><textarea id="onboardingItemTextZh" maxlength="500" data-i18n-placeholder="onboarding_item_placeholder_zh"></textarea></label>
+              <label><span data-i18n="translation_en"></span><textarea id="onboardingItemTextEn" maxlength="500" data-i18n-placeholder="onboarding_item_placeholder_en"></textarea></label>
+              <label><span data-i18n="translation_th"></span><textarea id="onboardingItemTextTh" maxlength="500" data-i18n-placeholder="onboarding_item_placeholder_th"></textarea></label>
+            </div>
+            <div class="manager-editor-actions"><button type="button" id="saveOnboardingItem" class="primary" data-i18n="content_save"></button><button type="button" id="cancelOnboardingEdit" class="ghost" data-i18n="content_cancel"></button></div>
+            <p class="source-note" data-i18n="manager_local_storage_note"></p><p id="onboardingManagerMessage" class="manager-message" aria-live="polite"></p><div id="onboardingManagerList" class="manager-list"></div>
+          </div>
+        </article>
+        <article class="card">
+          <h3 data-i18n="first_day_contacts"></h3>
+          <div class="contact-list">
+            <div class="contact-item" data-i18n="supervisor_contact"></div>
+            <div class="contact-item" data-i18n="hr_contact"></div>
+            <div class="contact-item" data-i18n="emergency_contact"></div>
+          </div>
+          <button class="primary" id="askOnboardingAI" data-i18n="ask_policy_ai"></button>
+        </article>
+      </div>
+
+      <article class="card">
+        <div class="section-head"><h3 data-i18n="essential_rules"></h3><span class="badge pending" data-i18n="policy_draft"></span></div>
+        <p class="onboarding-note" data-i18n="policy_disclaimer"></p>
+        <div id="policyCards" class="policy-grid"></div>
+      </article>
+    </section>
+
+
+    <section class="page" data-page="sops">
+      <article class="card onboarding-hero"><span class="badge approved" data-i18n="enterprise_sop"></span><h3 data-i18n="sop_center"></h3><p data-i18n="sop_center_intro"></p><div class="progress"><span id="sopProgressBar" style="width:0%"></span></div><small id="sopProgressText" class="source-note"></small></article>
+      <article class="card"><div class="sop-toolbar"><input id="sopSearch" data-i18n-placeholder="sop_search_placeholder"><select id="sopCategory"><option value="all" data-i18n="category_all"></option><option value="company" data-i18n="category_company"></option><option value="attendance" data-i18n="category_attendance"></option><option value="leave" data-i18n="category_leave"></option><option value="safety" data-i18n="category_safety"></option><option value="quality" data-i18n="category_quality"></option><option value="security" data-i18n="category_security"></option><option value="emergency" data-i18n="category_emergency"></option><option value="conduct" data-i18n="category_conduct"></option></select><span class="badge pending" data-i18n="hr_confirmed_only"></span></div><div id="sopGrid" class="sop-grid"></div></article>
+      <article id="sopQuiz" class="card">
+        <div class="section-head"><div><h3 data-i18n="sop_quiz_title"></h3><p id="sopQuizIntro" class="onboarding-note"></p></div><button type="button" id="toggleQuizManager" class="soft manager-toggle" hidden></button></div>
+        <div id="sopQuizQuestions" class="quiz-grid"></div>
+        <button id="submitSopQuiz" class="primary" data-i18n="sop_quiz_submit"></button><strong id="sopQuizScore" style="margin-inline-start:12px"></strong><p id="sopQuizMessage"></p>
+        <div id="quizManager" class="content-manager hidden">
+          <div class="content-manager-head"><div><h4 data-i18n="quiz_manager_title"></h4><p class="onboarding-note" data-i18n="quiz_manager_note"></p></div><button type="button" id="restoreQuizDefaults" class="ghost" data-i18n="content_restore_defaults"></button></div>
+          <div class="score-form"><label><span data-i18n="quiz_passing_score"></span><input id="quizPassingScore" type="number" min="60" max="100" step="1"></label><button type="button" id="saveQuizPassingScore" class="soft" data-i18n="quiz_save_score"></button></div>
+          <input type="hidden" id="quizEditId">
+          <p class="source-note" data-i18n="translation_fields_note"></p>
+          <div class="translation-grid">
+            <label><span data-i18n="translation_zh_tw"></span><textarea id="quizQuestionTextZh" maxlength="500" data-i18n-placeholder="quiz_question_placeholder_zh"></textarea></label>
+            <label><span data-i18n="translation_en"></span><textarea id="quizQuestionTextEn" maxlength="500" data-i18n-placeholder="quiz_question_placeholder_en"></textarea></label>
+            <label><span data-i18n="translation_th"></span><textarea id="quizQuestionTextTh" maxlength="500" data-i18n-placeholder="quiz_question_placeholder_th"></textarea></label>
+          </div>
+          <div class="manager-editor-actions"><select id="quizCorrectAnswer"><option value="yes" data-i18n="quiz_yes"></option><option value="no" data-i18n="quiz_no"></option></select><button type="button" id="saveQuizQuestion" class="primary" data-i18n="content_save"></button><button type="button" id="cancelQuizEdit" class="ghost" data-i18n="content_cancel"></button></div>
+          <p class="source-note" data-i18n="manager_local_storage_note"></p><p id="quizManagerMessage" class="manager-message" aria-live="polite"></p><div id="quizManagerList" class="manager-list"></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="page" data-page="attendance">
+      <article class="card onboarding-hero"><span class="badge approved" data-i18n="attendance"></span><h3 data-i18n="attendance_center"></h3><p data-i18n="attendance_intro"></p></article>
+      <div class="attendance-kpis"><article class="card kpi"><strong id="attendanceRate">—</strong><span data-i18n="attendance_rate"></span></article><article class="card kpi"><strong id="attendanceLateCount">—</strong><span data-i18n="attendance_late_count"></span></article><article class="card kpi"><strong id="attendanceMissingCount">—</strong><span data-i18n="attendance_missing_count"></span></article><article class="card kpi"><strong id="attendanceOvertime">—</strong><span data-i18n="attendance_overtime"></span></article></div>
+      <article class="card"><div class="section-head"><h3 data-i18n="attendance_center"></h3><button id="attendanceExport" class="soft" data-i18n="attendance_export"></button></div><div class="table-wrap"><table><thead><tr><th data-i18n="date"></th><th data-i18n="scheduled_time"></th><th data-i18n="clock_in"></th><th data-i18n="clock_out"></th><th data-i18n="attendance_status"></th><th data-i18n="attendance_source"></th></tr></thead><tbody id="attendanceRows"></tbody></table></div></article>
+      <article class="card form-card"><h3 data-i18n="correction_request"></h3><div class="correction-grid"><div><label data-i18n="correction_date"></label><input id="correctionDate" type="date"></div><div><label data-i18n="requested_clock_in"></label><input id="correctionClockIn" type="time"></div><div><label data-i18n="requested_clock_out"></label><input id="correctionClockOut" type="time"></div><div class="wide"><label data-i18n="correction_reason"></label><input id="correctionReason"></div></div><button id="submitCorrection" class="primary" data-i18n="submit_correction"></button><span id="correctionMessage"></span></article>
+    </section>
+
+    <section class="page" data-page="apply">
+      <article class="card form-card"><h3 data-i18n="apply"></h3>
+        <div class="form-grid">
+          <div><label data-i18n="type"></label><select id="leaveType"><option value="annual_leave" data-i18n="annual_leave"></option><option value="sick_leave" data-i18n="sick_leave"></option><option value="personal_leave" data-i18n="personal_leave"></option></select></div>
+          <div><label data-i18n="proxy"></label><input id="proxy" value="E002"></div>
+          <div><label data-i18n="start"></label><input id="startDate" type="date"></div>
+          <div><label data-i18n="end"></label><input id="endDate" type="date"></div>
+        </div>
+        <label data-i18n="reason"></label><textarea id="reason"></textarea>
+        <label data-i18n="handover"></label><textarea id="handover"></textarea>
+        <div id="leaveCalculation" class="calculation-box" aria-live="polite"></div>
+        <button class="primary" id="submitLeave" data-i18n="submit"></button><span id="applyMessage"></span>
+      </article>
+    </section>
+
+    <section class="page" data-page="requests">
+      <article class="card"><div class="section-head"><h3 data-i18n="requests"></h3><button class="soft" id="exportRequests" data-i18n="export"></button></div>
+        <div class="table-wrap"><table><thead><tr><th data-i18n="record_id"></th><th data-i18n="employee"></th><th data-i18n="type"></th><th data-i18n="date"></th><th data-i18n="deducted_days"></th><th data-i18n="status"></th><th data-i18n="action"></th></tr></thead><tbody id="requestRows"></tbody></table></div>
+      </article>
+    </section>
+
+    <section class="page" data-page="employees">
+      <article class="card"><div class="section-head"><h3 data-i18n="employees"></h3><button class="soft" data-i18n="import"></button></div>
+        <div class="table-wrap"><table><thead><tr><th data-i18n="record_id"></th><th data-i18n="name_label"></th><th data-i18n="department"></th><th data-i18n="my_rotation_group"></th><th data-i18n="balance"></th></tr></thead><tbody><tr><td>E001</td><td>Wang</td><td data-i18n="production"></td><td>A</td><td>12</td></tr><tr><td>E002</td><td>Chen</td><td data-i18n="administration"></td><td>B</td><td>9</td></tr><tr><td>M001</td><td>Lin</td><td data-i18n="production"></td><td>B</td><td>10</td></tr></tbody></table></div>
+      </article>
+    </section>
+
+    <section class="page" data-page="holidays">
+      <article class="card"><div class="section-head"><div><h3 data-i18n="holidays"></h3><small id="holidaySyncStatus" class="sync-meta"></small></div><button class="soft" id="syncHoliday" data-i18n="sync"></button></div>
+        <div class="table-wrap"><table><thead><tr><th data-i18n="date"></th><th data-i18n="company_holiday"></th><th data-i18n="type"></th><th data-i18n="status"></th></tr></thead><tbody id="holidayRows"></tbody></table></div>
+      </article>
+    </section>
+
+    <section class="page" data-page="rotation">
+      <article class="card form-card">
+        <div class="section-head"><div><h3 data-i18n="rotation_schedule"></h3><div id="rotationMyGroup" class="rotation-summary"></div></div><span id="rotationMessage"></span></div>
+        <h4 data-i18n="rotation_settings"></h4>
+        <div class="rotation-controls">
+          <div><label data-i18n="rotation_anchor"></label><input id="rotationAnchor" type="date"></div>
+          <div><label data-i18n="first_working_group"></label><select id="rotationFirstGroup"><option value="A">A</option><option value="B">B</option></select></div>
+          <label class="checkbox-row"><input id="rotationSaturdayEnabled" type="checkbox"><span data-i18n="saturday_rotation_enabled"></span></label>
+        </div>
+        <button id="saveRotation" class="primary" data-i18n="save"></button>
+      </article>
+      <article class="card"><h3 data-i18n="upcoming_saturdays"></h3><div class="table-wrap"><table><thead><tr><th data-i18n="date"></th><th data-i18n="working_group"></th><th data-i18n="my_status"></th><th data-i18n="note"></th></tr></thead><tbody id="rotationRows"></tbody></table></div></article>
+      <article class="card form-card"><h3 data-i18n="special_date_override"></h3>
+        <div class="override-grid">
+          <div><label data-i18n="override_date"></label><input id="rotationOverrideDate" type="date"></div>
+          <div><label data-i18n="override_type"></label><select id="rotationOverrideType"><option value="DAY_OFF" data-i18n="special_day_off"></option><option value="WORKDAY" data-i18n="special_workday"></option></select></div>
+          <div><label data-i18n="target_group"></label><select id="rotationOverrideGroup"><option value="ALL" data-i18n="all_groups"></option><option value="A">A</option><option value="B">B</option><option value="NONE">NONE</option></select></div>
+          <div><label data-i18n="note"></label><input id="rotationOverrideNote"></div>
+          <button id="addRotationOverride" class="soft" data-i18n="add_override"></button>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th data-i18n="date"></th><th data-i18n="override_type"></th><th data-i18n="target_group"></th><th data-i18n="note"></th><th data-i18n="action"></th></tr></thead><tbody id="rotationOverrideRows"></tbody></table></div>
+      </article>
+    </section>
+
+    <section class="page" data-page="calendar">
+      <article class="card">
+        <div class="section-head">
+          <div><h3 data-i18n="calendar"></h3><div id="calendarTitle" class="calendar-title"></div></div>
+          <div class="calendar-toolbar"><button class="ghost" id="prevMonth" data-i18n-aria-label="previous_month">‹</button><button class="soft" id="todayMonth" data-i18n="today"></button><button class="ghost" id="nextMonth" data-i18n-aria-label="next_month">›</button></div>
+        </div>
+        <span class="calendar-hint" data-i18n="calendar_hint"></span>
+        <small id="calendarRotationInfo" class="sync-meta"></small>
+        <div class="calendar-legend"><span><i class="legend-dot work"></i><span data-i18n="scheduled_workday"></span></span><span><i class="legend-dot off"></i><span data-i18n="scheduled_day_off"></span></span><span><i class="legend-dot holiday"></i><span data-i18n="holiday"></span></span></div>
+        <div id="calendarWeekdays" class="calendar-weekdays"></div>
+        <div id="calendarGrid" class="calendar-grid"></div>
+      </article>
+    </section>
+
+    <section class="page" data-page="ai">
+      <article class="card ai-card">
+        <div class="chat-toolbar">
+          <div><h3 data-i18n="ask_ai"></h3><p id="aiStatus" class="chat-status"></p></div>
+          <button class="ghost" id="aiClear" data-i18n="ai_clear"></button>
+        </div>
+        <div class="chat" id="aiChat" role="log" aria-live="polite"><div id="aiMessages"></div></div>
+        <div class="chat-suggestions" data-i18n-aria-label="suggested_questions_label">
+          <button class="soft" type="button" data-ai-question="ai_q1" data-i18n="ai_q1"></button>
+          <button class="soft" type="button" data-ai-question="ai_q2" data-i18n="ai_q2"></button>
+          <button class="soft" type="button" data-ai-question="ai_q3" data-i18n="ai_q3"></button>
+          <button class="soft" type="button" data-ai-question="ai_q4" data-i18n="ai_q4"></button>
+        </div>
+        <div class="chat-input"><textarea id="aiInput" rows="1" data-i18n-placeholder="ai_placeholder"></textarea><button class="primary" id="aiSend" data-i18n="send"></button></div>
+        <small id="aiNote" class="chat-note" data-i18n="ai_demo_notice"></small>
+      </article>
+    </section>
+
+    <section class="page" data-page="reports">
+      <div class="kpi-grid"><article class="card kpi"><strong>86</strong><span data-i18n="total_employees"></span></article><article class="card kpi"><strong>94%</strong><span data-i18n="approval_rate"></span></article><article class="card kpi"><strong>1.8</strong><span data-i18n="avg_days"></span></article><article class="card kpi"><strong>24</strong><span data-i18n="month"></span></article></div>
+      <article class="card"><div class="section-head"><h3 data-i18n="report_summary"></h3><button class="soft" id="exportReport" data-i18n="export"></button></div><div class="bars large" id="reportBars"></div></article>
+    </section>
+
+    <section class="page" data-page="excel">
+      <article class="card"><h3 data-i18n="excel"></h3><div class="upload-box"><p>CSV / XLSX</p><input type="file" id="excelFile" accept=".csv,.xlsx,.xls"><div class="button-row"><button class="primary" id="fakeImport" data-i18n="import"></button><button class="soft" id="downloadTemplate" data-i18n="download_template"></button></div><p id="excelMessage"></p></div></article>
+    </section>
+
+    <section class="page" data-page="notifications">
+      <article class="card">
+        <div class="section-head"><div><h3 data-i18n="notifications"></h3><p id="notificationSummary" class="notification-summary" data-i18n="notifications_intro"></p></div><button id="markNotificationsRead" class="soft" data-i18n="mark_all_read"></button></div>
+        <div id="notificationList" class="notification-list"><div class="empty-state">🔔<p data-i18n="notifications_empty"></p></div></div>
+      </article>
+    </section>
+
+    <section class="page" data-page="audit">
+      <article class="card"><h3 data-i18n="audit"></h3><div class="table-wrap"><table><thead><tr><th data-i18n="time"></th><th data-i18n="user"></th><th data-i18n="action"></th></tr></thead><tbody id="auditRows"></tbody></table></div></article>
+    </section>
+
+    <section class="page" data-page="settings">
+      <article class="card form-card"><h3 data-i18n="settings"></h3><label data-i18n="language"></label><select id="settingsLanguage"><option value="zh-TW">繁體中文</option><option value="en">English</option><option value="th">ไทย</option></select><label data-i18n="theme"></label><select id="themeSelect"><option value="light" data-i18n="light"></option><option value="dark" data-i18n="dark"></option></select><button class="primary" id="saveSettings" data-i18n="save"></button><span id="settingsMessage"></span></article>
+    </section>
+  </main>
+</section>
+<!-- v16.3.1: Full multilingual UI with dynamic sidebar and role-label language switching fixed. -->
+<script>
+window.EMERALD_CONFIG = window.EMERALD_CONFIG || Object.freeze({
+  APP_MODE: "demo",
+  API_BASE_URL: "",
+  AUTO_CONNECT_LOCALHOST: true
+});
+</script>
+<script src="./config.js?v=20260724"></script>
+<script src="./i18n.js?v=20260724"></script>
+<script src="./app.js?v=20260724"></script>
+
+</body>
+</html>
