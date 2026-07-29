@@ -1352,6 +1352,51 @@ function bindEvents() {
     $("settingsMessage").textContent = t("saved");
     applyTheme($("themeSelect").value);
   };
+  $("changePasswordButton").onclick = async () => {
+    const messageEl = $("changePasswordMessage");
+    const currentPassword = $("currentPasswordInput").value;
+    const newPassword = $("newPasswordInput").value;
+    const confirmPassword = $("confirmNewPasswordInput").value;
+
+    if (!currentPassword || !newPassword) {
+      messageEl.textContent = t("password_fields_required");
+      return;
+    }
+    if (newPassword.length < 8) {
+      messageEl.textContent = t("password_too_short");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      messageEl.textContent = t("password_mismatch");
+      return;
+    }
+    if (!CONFIG.API_BASE_URL || !apiToken) {
+      messageEl.textContent = t("backend_unavailable");
+      return;
+    }
+
+    messageEl.textContent = "…";
+    try {
+      const response = await fetch(apiUrl("/api/me/change-password"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiToken}` },
+        body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
+      });
+      if (response.ok) {
+        messageEl.textContent = t("password_changed_success");
+        $("currentPasswordInput").value = "";
+        $("newPasswordInput").value = "";
+        $("confirmNewPasswordInput").value = "";
+      } else if (response.status === 401 || response.status === 403) {
+        messageEl.textContent = t("current_password_incorrect");
+      } else {
+        messageEl.textContent = t("password_change_failed");
+      }
+    } catch (error) {
+      console.info("Change password failed.", error);
+      messageEl.textContent = t("password_change_failed");
+    }
+  };
   $("globalSearch").oninput = event => searchNav(event.target.value);
   document.querySelectorAll("[data-go]").forEach(button => {
     button.onclick = () => showPage(button.dataset.go);

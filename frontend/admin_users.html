@@ -116,6 +116,18 @@
       background: #b91c1c;
     }
 
+    .small {
+      width: auto;
+      min-height: 32px;
+      padding: 6px 10px;
+      font-size: 13px;
+    }
+
+    .row-actions {
+      display: flex;
+      gap: 6px;
+    }
+
     .actions {
       display: flex;
       gap: 10px;
@@ -301,6 +313,7 @@
                 <th>角色</th>
                 <th>部門</th>
                 <th>輪班</th>
+                <th>操作</th>
               </tr>
             </thead>
             <tbody id="userTableBody"></tbody>
@@ -441,7 +454,52 @@
           row.appendChild(cell);
         });
 
+        const actionsCell = document.createElement("td");
+        const resetButton = document.createElement("button");
+        resetButton.type = "button";
+        resetButton.className = "secondary small";
+        resetButton.textContent = "重設密碼";
+        resetButton.addEventListener("click", () => resetPassword(user.id));
+        actionsCell.appendChild(resetButton);
+        row.appendChild(actionsCell);
+
         userTableBody.appendChild(row);
+      }
+    }
+
+    async function resetPassword(userId) {
+      const newPassword = prompt(
+        `為 ${userId} 設定新密碼（至少 8 碼）。留空則自動產生一組隨機密碼。`
+      );
+
+      if (newPassword === null) return;
+
+      const password = newPassword.trim() || crypto.randomUUID().replace(/-/g, "").slice(0, 12);
+
+      if (password.length < 8) {
+        setStatus(listStatus, "密碼至少需要 8 個字元", "error");
+        return;
+      }
+
+      try {
+        const response = await apiFetch(
+          `/api/admin/users/${encodeURIComponent(userId)}/reset-password`,
+          {
+            method: "POST",
+            body: JSON.stringify({ new_password: password })
+          }
+        );
+
+        const data = await readJsonSafely(response);
+
+        if (!response.ok) {
+          throw new Error(errorMessage(data, `重設失敗（${response.status}）`));
+        }
+
+        alert(`${userId} 的新密碼是：\n\n${password}\n\n請立刻把這組密碼告訴當事人，這裡不會再顯示第二次。`);
+        setStatus(listStatus, `${userId} 密碼已重設`, "ok");
+      } catch (error) {
+        setStatus(listStatus, error.message, "error");
       }
     }
 
