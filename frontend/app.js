@@ -1447,6 +1447,13 @@ function buildNav() {
     button.onclick = () => showPage(page);
     $("mainNav").appendChild(button);
   });
+  if (current.role === "hr" || current.role === "admin") {
+    const rulesButton = document.createElement("button");
+    rulesButton.dataset.i18n = "rules_admin";
+    rulesButton.textContent = t("rules_admin");
+    rulesButton.onclick = () => window.open("./admin_rules.html", "_blank");
+    $("mainNav").appendChild(rulesButton);
+  }
   renderNotificationNavBadge();
 }
 
