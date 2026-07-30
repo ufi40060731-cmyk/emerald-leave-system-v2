@@ -429,7 +429,13 @@
       sessionPanel.classList.remove("hidden");
       currentUser.textContent = `${user.id}｜${user.name}｜${user.role}`;
       currentRole = user.role;
-      createUserForm.closest(".card").classList.toggle("hidden", currentRole !== "admin");
+      createUserForm.closest(".card").classList.remove("hidden");
+      const roleSelect = document.getElementById("role");
+      if (roleSelect) {
+        Array.from(roleSelect.options).forEach(option => {
+          option.hidden = currentRole === "hr" && (option.value === "hr" || option.value === "admin");
+        });
+      }
     }
 
     function renderUsers(users) {
@@ -500,7 +506,7 @@
         const actionsWrap = document.createElement("div");
         actionsWrap.className = "row-actions";
 
-        if (currentRole === "admin") {
+        if (currentRole === "admin" || currentRole === "hr") {
           const resetButton = document.createElement("button");
           resetButton.type = "button";
           resetButton.className = "secondary small";

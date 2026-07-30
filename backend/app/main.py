@@ -1746,7 +1746,7 @@ def list_users(
 )
 def create_user(
     payload: UserCreate,
-    actor: Annotated[User, Depends(require_roles(Role.admin))],
+    actor: Annotated[User, Depends(require_roles(Role.hr, Role.admin))],
     db: Annotated[Session, Depends(get_db)],
 ) -> User:
     user_id = payload.id.strip().upper()
@@ -1757,6 +1757,12 @@ def create_user(
         raise HTTPException(
             status_code=422,
             detail="ID、姓名及部門不得空白",
+        )
+
+    if actor.role == Role.hr.value and payload.role in {Role.hr, Role.admin}:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="HR 只能新增 employee 或 manager 角色的帳號，hr／admin 角色須由管理員建立",
         )
 
     if db.get(User, user_id):
@@ -1832,7 +1838,7 @@ def change_my_password(
 def admin_reset_user_password(
     user_id: str,
     payload: AdminPasswordResetRequest,
-    actor: Annotated[User, Depends(require_roles(Role.admin))],
+    actor: Annotated[User, Depends(require_roles(Role.hr, Role.admin))],
     db: Annotated[Session, Depends(get_db)],
 ) -> dict:
     target_id = user_id.strip().upper()
@@ -1842,6 +1848,12 @@ def admin_reset_user_password(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
+        )
+
+    if actor.role == Role.hr.value and user.role in {Role.hr.value, Role.admin.value}:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="HR 不能重設 hr／admin 角色帳號的密碼，須由管理員操作",
         )
 
     user.password_hash = pwd_context.hash(payload.new_password)
@@ -1887,6 +1899,12 @@ def admin_set_user_status(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="You cannot deactivate your own account",
+        )
+
+    if actor.role == Role.hr.value and user.role in {Role.hr.value, Role.admin.value}:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="HR 不能停用／啟用 hr／admin 角色帳號，須由管理員操作",
         )
 
     user.is_active = payload.is_active
