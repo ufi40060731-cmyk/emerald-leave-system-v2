@@ -346,6 +346,13 @@
         <p class="muted">刪除為軟刪除（active = false），刪除後會立刻從清單與 Chatbot 查詢結果中消失。</p>
         <div id="listStatus" class="status"></div>
 
+        <input
+          id="ruleSearchInput"
+          type="search"
+          placeholder="搜尋代碼／標題／分類／內容關鍵字…"
+          style="margin-bottom: 12px;"
+        >
+
         <div class="table-wrap">
           <table>
             <thead>
@@ -416,8 +423,26 @@
     const bulkPreviewBody = document.getElementById("bulkPreviewBody");
     const parseBulkButton = document.getElementById("parseBulkButton");
     const importBulkButton = document.getElementById("importBulkButton");
+    const ruleSearchInput = document.getElementById("ruleSearchInput");
 
     let parsedArticles = [];
+    let allRules = [];
+
+    function filterAndRenderRules() {
+      const query = ruleSearchInput.value.trim().toLowerCase();
+      const filtered = !query
+        ? allRules
+        : allRules.filter(rule =>
+            [rule.code, rule.title, rule.category, rule.content_zh]
+              .some(field => String(field || "").toLowerCase().includes(query))
+          );
+      renderRules(filtered);
+      setStatus(
+        listStatus,
+        query ? `符合「${query}」共 ${filtered.length} / ${allRules.length} 筆` : `共 ${allRules.length} 筆規章`,
+        "ok"
+      );
+    }
 
     let editingCode = null;
 
@@ -593,8 +618,8 @@
           throw new Error(errorMessage(data, `讀取失敗（${response.status}）`));
         }
 
-        renderRules(data);
-        setStatus(listStatus, `共 ${data.length} 筆規章`, "ok");
+        allRules = data;
+        filterAndRenderRules();
       } catch (error) {
         setStatus(listStatus, error.message, "error");
       } finally {
@@ -890,6 +915,7 @@
 
     cancelEditButton.addEventListener("click", resetForm);
     refreshButton.addEventListener("click", loadRules);
+    ruleSearchInput.addEventListener("input", filterAndRenderRules);
 
     logoutButton.addEventListener("click", () => {
       setToken("");

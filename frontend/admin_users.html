@@ -304,6 +304,13 @@
         <p class="muted">清單不會顯示密碼或密碼雜湊。</p>
         <div id="listStatus" class="status"></div>
 
+        <input
+          id="userSearchInput"
+          type="search"
+          placeholder="搜尋員工編號／姓名／部門…"
+          style="margin-bottom: 12px;"
+        >
+
         <div class="table-wrap">
           <table>
             <thead>
@@ -339,12 +346,30 @@
     const loginForm = document.getElementById("loginForm");
     const createUserForm = document.getElementById("createUserForm");
     let currentRole = "";
+    let allUsers = [];
+
+    function filterAndRenderUsers() {
+      const query = userSearchInput.value.trim().toLowerCase();
+      const filtered = !query
+        ? allUsers
+        : allUsers.filter(user =>
+            [user.id, user.name, user.department]
+              .some(field => String(field || "").toLowerCase().includes(query))
+          );
+      renderUsers(filtered);
+      setStatus(
+        listStatus,
+        query ? `符合「${query}」共 ${filtered.length} / ${allUsers.length} 個帳號` : `共 ${allUsers.length} 個帳號`,
+        "ok"
+      );
+    }
 
     const loginStatus = document.getElementById("loginStatus");
     const createStatus = document.getElementById("createStatus");
     const listStatus = document.getElementById("listStatus");
 
     const userTableBody = document.getElementById("userTableBody");
+    const userSearchInput = document.getElementById("userSearchInput");
 
     const loginButton = document.getElementById("loginButton");
     const createButton = document.getElementById("createButton");
@@ -680,8 +705,8 @@
           );
         }
 
-        renderUsers(data);
-        setStatus(listStatus, `共 ${data.length} 個帳號`, "ok");
+        allUsers = data;
+        filterAndRenderUsers();
       } catch (error) {
         setStatus(listStatus, error.message, "error");
       } finally {
@@ -810,6 +835,7 @@
     });
 
     refreshButton.addEventListener("click", loadUsers);
+    userSearchInput.addEventListener("input", filterAndRenderUsers);
 
     logoutButton.addEventListener("click", () => {
       setToken("");
