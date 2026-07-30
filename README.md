@@ -133,6 +133,32 @@ Railway：MySQL 8（私有網路連線，DATABASE_URL）
 
 ---
 
+## 稽核紀錄（Audit Trail）事件類型參考
+
+「稽核紀錄」頁面（前端稱 Audit log）目前會記錄以下事件，全部都有中／英／泰
+三語翻譯，不會顯示未翻譯的原始英文代碼：
+
+| 後端事件代碼 | 說明 |
+|---|---|
+| `work_rule_created` | 新增工作規章 |
+| `work_rule_updated` | 更新工作規章 |
+| `work_rule_deactivated` | 刪除（軟刪除）工作規章 |
+| `sop_created` | 新增 SOP |
+| `sop_updated` | 更新 SOP |
+| `sop_acknowledged` | 員工確認已閱讀 SOP |
+| `attendance_import` | 匯入出勤紀錄 |
+| `attendance_correction_requested` | 員工提出缺卡修正申請 |
+| `attendance_correction_approved` / `attendance_correction_rejected` | 主管/HR 審核缺卡修正 |
+| `password_changed` | 使用者自行修改密碼 |
+| `admin_password_reset` | 管理員代為重設密碼 |
+| `user_activated` / `user_deactivated` | 員工帳號啟用／停用 |
+| `user_photo_updated` / `user_photo_removed` | 員工照片更新／移除 |
+
+每筆紀錄都會存操作者帳號、時間、以及一段自由文字說明（例如異動了哪些欄位）。
+稽核紀錄目前沒有對外匯出功能，僅供系統內查看。
+
+---
+
 ## 詢問 AI（RAG Chatbot）設定
 
 Chatbot 回答問題時的判斷順序：
