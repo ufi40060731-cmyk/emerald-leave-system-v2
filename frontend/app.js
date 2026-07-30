@@ -161,6 +161,21 @@ const LEAVE_TYPE_ALIASES = {
   personal_leave: "personal_leave"
 };
 const AUDIT_ALIASES = {
+  work_rule_created: "work_rule_created_action",
+  work_rule_updated: "work_rule_updated_action",
+  work_rule_deactivated: "work_rule_deactivated_action",
+  sop_acknowledged: "sop_acknowledge_action",
+  sop_created: "sop_created_action",
+  sop_updated: "sop_updated_action",
+  attendance_import: "excel_import_action",
+  attendance_correction_requested: "attendance_correction_action",
+  attendance_correction_approved: "approve_leave_action",
+  attendance_correction_rejected: "reject_leave_action",
+  password_changed: "password_changed_action",
+  admin_password_reset: "admin_password_reset_action",
+  user_activated: "user_activated_action",
+  user_deactivated: "user_deactivated_action",
+  // Kept for older locally-generated demo audit entries (no backend equivalent).
   Login: "login_action",
   Logout: "logout_action",
   "Submit leave": "submit_leave_action",

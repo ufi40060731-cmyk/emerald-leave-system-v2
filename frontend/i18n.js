@@ -1,5 +1,14 @@
 window.EMERALD_I18N = Object.freeze({
   "zh-TW": {
+    "work_rule_created_action": "新增工作規章",
+    "work_rule_updated_action": "更新工作規章",
+    "work_rule_deactivated_action": "刪除工作規章",
+    "sop_created_action": "新增 SOP",
+    "sop_updated_action": "更新 SOP",
+    "password_changed_action": "自行修改密碼",
+    "admin_password_reset_action": "管理員重設密碼",
+    "user_activated_action": "啟用員工帳號",
+    "user_deactivated_action": "停用員工帳號",
     "change_password": "修改密碼",
     "current_password": "目前密碼",
     "new_password": "新密碼",
@@ -405,6 +414,15 @@ window.EMERALD_I18N = Object.freeze({
     "translation_missing_text": "此內容尚未提供目前語言的翻譯"
   },
   "en": {
+    "work_rule_created_action": "Created work rule",
+    "work_rule_updated_action": "Updated work rule",
+    "work_rule_deactivated_action": "Deleted work rule",
+    "sop_created_action": "Created SOP",
+    "sop_updated_action": "Updated SOP",
+    "password_changed_action": "Changed own password",
+    "admin_password_reset_action": "Admin reset password",
+    "user_activated_action": "Activated employee account",
+    "user_deactivated_action": "Deactivated employee account",
     "change_password": "Change Password",
     "current_password": "Current Password",
     "new_password": "New Password",
@@ -810,6 +828,15 @@ window.EMERALD_I18N = Object.freeze({
     "translation_missing_text": "This content has not been translated into the selected language yet"
   },
   "th": {
+    "work_rule_created_action": "เพิ่มระเบียบข้อบังคับ",
+    "work_rule_updated_action": "แก้ไขระเบียบข้อบังคับ",
+    "work_rule_deactivated_action": "ลบระเบียบข้อบังคับ",
+    "sop_created_action": "เพิ่ม SOP",
+    "sop_updated_action": "แก้ไข SOP",
+    "password_changed_action": "เปลี่ยนรหัสผ่านของตนเอง",
+    "admin_password_reset_action": "ผู้ดูแลระบบรีเซ็ตรหัสผ่าน",
+    "user_activated_action": "เปิดใช้งานบัญชีพนักงาน",
+    "user_deactivated_action": "ระงับบัญชีพนักงาน",
     "change_password": "เปลี่ยนรหัสผ่าน",
     "current_password": "รหัสผ่านปัจจุบัน",
     "new_password": "รหัสผ่านใหม่",
