@@ -1,5 +1,9 @@
 window.EMERALD_I18N = Object.freeze({
   "zh-TW": {
+    "correction_review": "缺卡修正審核",
+    "correction_review_help": "主管只會看到自己部門的申請；HR／管理員可以看到全公司的申請。",
+    "refresh": "重新整理",
+    "correction_review_note_prompt": "退回原因（選填）：",
     "role": "角色",
     "rotation": "輪班",
     "initial_password": "初始密碼（留空自動產生）",
@@ -432,6 +436,10 @@ window.EMERALD_I18N = Object.freeze({
     "translation_missing_text": "此內容尚未提供目前語言的翻譯"
   },
   "en": {
+    "correction_review": "Attendance Correction Review",
+    "correction_review_help": "Managers only see requests from their own department; HR/Admin see requests company-wide.",
+    "refresh": "Refresh",
+    "correction_review_note_prompt": "Reason for rejection (optional):",
     "role": "Role",
     "rotation": "Rotation",
     "initial_password": "Initial password (leave blank to auto-generate)",
@@ -864,6 +872,10 @@ window.EMERALD_I18N = Object.freeze({
     "translation_missing_text": "This content has not been translated into the selected language yet"
   },
   "th": {
+    "correction_review": "ตรวจสอบคำขอแก้ไขเวลาเข้างาน",
+    "correction_review_help": "หัวหน้างานจะเห็นเฉพาะคำขอจากแผนกของตนเอง ฝ่ายบุคคล/ผู้ดูแลระบบเห็นคำขอทั้งบริษัท",
+    "refresh": "รีเฟรช",
+    "correction_review_note_prompt": "เหตุผลในการปฏิเสธ (ไม่บังคับ):",
     "role": "บทบาท",
     "rotation": "กะหมุนเวียน",
     "initial_password": "รหัสผ่านเริ่มต้น (เว้นว่างเพื่อสร้างอัตโนมัติ)",

@@ -499,14 +499,13 @@
           user.id,
           user.name,
           user.role,
-          user.department,
-          user.rotation_group
+          user.department
         ];
 
         values.forEach((value, index) => {
           const cell = document.createElement("td");
 
-          if (index === 2 || index === 4) {
+          if (index === 2) {
             const badge = document.createElement("span");
             badge.className = "badge";
             badge.textContent = value;
@@ -517,6 +516,20 @@
 
           row.appendChild(cell);
         });
+
+        const rotationCell = document.createElement("td");
+        const rotationSelect = document.createElement("select");
+        rotationSelect.style.cssText = "min-height:32px;padding:4px 8px;border-radius:8px;border:1px solid #cbd5e1;";
+        ["A", "B", "NONE"].forEach(option => {
+          const optionEl = document.createElement("option");
+          optionEl.value = option;
+          optionEl.textContent = option;
+          if (option === user.rotation_group) optionEl.selected = true;
+          rotationSelect.appendChild(optionEl);
+        });
+        rotationSelect.addEventListener("change", () => updateRotationGroup(user.id, rotationSelect.value));
+        rotationCell.appendChild(rotationSelect);
+        row.appendChild(rotationCell);
 
         const statusCell = document.createElement("td");
         const statusBadge = document.createElement("span");
@@ -612,7 +625,28 @@
       input.click();
     }
 
-    async function toggleUserStatus(userId, makeActive) {      const confirmMessage = makeActive
+    async function updateRotationGroup(userId, rotationGroup) {
+      try {
+        const response = await apiFetch(`/api/users/${encodeURIComponent(userId)}/rotation-group`, {
+          method: "PATCH",
+          body: JSON.stringify({ rotation_group: rotationGroup })
+        });
+
+        const data = await readJsonSafely(response);
+
+        if (!response.ok) {
+          throw new Error(errorMessage(data, `更新失敗（${response.status}）`));
+        }
+
+        setStatus(listStatus, `${userId} 輪班組已改成 ${rotationGroup}`, "ok");
+      } catch (error) {
+        setStatus(listStatus, error.message, "error");
+        await loadUsers();
+      }
+    }
+
+    async function toggleUserStatus(userId, makeActive) {
+      const confirmMessage = makeActive
         ? `確定要重新啟用 ${userId} 嗎？`
         : `確定要停用 ${userId} 嗎？停用後這個帳號將無法登入，但歷史紀錄會保留。`;
 

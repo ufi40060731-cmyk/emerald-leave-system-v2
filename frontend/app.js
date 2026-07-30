@@ -1064,6 +1064,75 @@ async function renderAttendance() {
   $("attendanceOvertime").textContent = "4.5";
   window.__emeraldAttendance = items;
   renderEnterpriseKpis();
+  if (["manager", "hr", "admin"].includes(current.role)) {
+    renderCorrectionReview();
+  } else if ($("correctionReviewCard")) {
+    $("correctionReviewCard").classList.add("hidden");
+  }
+}
+
+async function renderCorrectionReview() {
+  const card = $("correctionReviewCard");
+  const rows = $("correctionReviewRows");
+  if (!card || !rows) return;
+  card.classList.remove("hidden");
+
+  if (!CONFIG.API_BASE_URL || !apiToken) {
+    rows.innerHTML = `<tr><td colspan="7">${escapeHtml(t("backend_unavailable"))}</td></tr>`;
+    return;
+  }
+
+  try {
+    const response = await fetch(apiUrl("/api/attendance/corrections"), {
+      headers: { Authorization: `Bearer ${apiToken}` }
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const items = await response.json();
+    window.__emeraldCorrections = items;
+
+    rows.innerHTML = items.length ? items.map(item => {
+      const employeeName = USERS[item.employee_id]?.name;
+      const employeeLabel = employeeName ? `${item.employee_id} ${employeeName}` : item.employee_id;
+      const statusClass = item.status === "approved" ? "approved" : item.status === "rejected" ? "rejected" : "pending";
+      const actions = item.status === "pending"
+        ? `<button class="soft" onclick="reviewCorrection(${item.id},'approved')">${escapeHtml(t("approve"))}</button>` +
+          `<button class="ghost" onclick="reviewCorrection(${item.id},'rejected')">${escapeHtml(t("reject"))}</button>`
+        : "";
+      return `<tr>` +
+        `<td>${escapeHtml(employeeLabel)}</td>` +
+        `<td>${escapeHtml(item.requested_clock_in ? item.requested_clock_in.slice(0, 10) : "—")}</td>` +
+        `<td>${escapeHtml(item.requested_clock_in || "—")}</td>` +
+        `<td>${escapeHtml(item.requested_clock_out || "—")}</td>` +
+        `<td>${escapeHtml(item.reason)}</td>` +
+        `<td><span class="badge ${statusClass}">${escapeHtml(t(item.status) || item.status)}</span></td>` +
+        `<td><div class="row-actions">${actions}</div></td>` +
+        `</tr>`;
+    }).join("") : `<tr><td colspan="7">${escapeHtml(t("no_data"))}</td></tr>`;
+  } catch (error) {
+    console.info("Could not load attendance corrections.", error);
+    rows.innerHTML = `<tr><td colspan="7">${escapeHtml(t("backend_unavailable"))}</td></tr>`;
+  }
+}
+
+window.reviewCorrection = async (correctionId, status) => {
+  if (!CONFIG.API_BASE_URL || !apiToken) return;
+  const note = status === "rejected" ? (prompt(t("correction_review_note_prompt")) || "") : "";
+  try {
+    const response = await fetch(apiUrl(`/api/attendance/corrections/${correctionId}/review`), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiToken}` },
+      body: JSON.stringify({ status, review_note: note })
+    });
+    const data = await readJsonSafely(response);
+    if (!response.ok) {
+      alert(`${t("action_failed")} ${data.detail || response.status}`);
+      return;
+    }
+    addAudit(status === "approved" ? "approve_leave_action" : "reject_leave_action");
+    renderAttendance();
+  } catch (error) {
+    alert(`${t("backend_unavailable")} ${error.message || ""}`);
+  }
 }
 
 async function submitAttendanceCorrection() {
