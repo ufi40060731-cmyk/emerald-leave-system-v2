@@ -30,7 +30,8 @@ const STORAGE = {
   contentConfig: "emerald_v16_2_content_config",
   sopProgress: "emerald_v16_sop_progress",
   attendanceCorrections: "emerald_v16_attendance_corrections",
-  notificationReads: "emerald_v16_1_notification_reads"
+  notificationReads: "emerald_v16_1_notification_reads",
+  yearDisplay: "emerald_v16_3_year_display"
 };
 const LEGACY_STORAGE = {
   language: "emerald_v11_lang",
@@ -246,6 +247,8 @@ const $ = id => document.getElementById(id);
 let lang = readStored(STORAGE.language, LEGACY_STORAGE.language) || "zh-TW";
 if (!SUPPORTED_LANGUAGES.includes(lang)) lang = "zh-TW";
 let dict = I18N[lang] || I18N["zh-TW"] || I18N.en || {};
+let yearDisplay = readStored(STORAGE.yearDisplay) || (lang === "th" ? "both" : "gregorian");
+if (!["gregorian", "buddhist", "both"].includes(yearDisplay)) yearDisplay = "gregorian";
 let current = null;
 let requests = loadRequests();
 let audits = loadAudits();
@@ -1241,6 +1244,7 @@ async function boot() {
   fillLanguageSelectors();
   bindEvents();
   applyTheme(readStored(STORAGE.theme, LEGACY_STORAGE.theme) || "light");
+  if ($("yearDisplaySelect")) $("yearDisplaySelect").value = yearDisplay;
   await setLanguage(lang);
   renderBars();
   await loadHolidays(calendarCursor.getFullYear());
@@ -1409,6 +1413,7 @@ function bindEvents() {
   });
   $("themeButton").onclick = toggleTheme;
   $("themeSelect").onchange = event => applyTheme(event.target.value);
+  $("yearDisplaySelect").onchange = event => applyYearDisplay(event.target.value);
   $("submitLeave").onclick = submitLeave;
   $("startDate").onchange = updateLeaveCalculation;
   $("endDate").onchange = updateLeaveCalculation;
@@ -1473,6 +1478,7 @@ function bindEvents() {
   $("saveSettings").onclick = () => {
     $("settingsMessage").textContent = t("saved");
     applyTheme($("themeSelect").value);
+    applyYearDisplay($("yearDisplaySelect").value);
   };
   $("changePasswordButton").onclick = async () => {
     const messageEl = $("changePasswordMessage");
@@ -1684,6 +1690,14 @@ function applyTheme(theme) {
   document.body.classList.toggle("dark", selected === "dark");
   localStorage.setItem(STORAGE.theme, selected);
   if ($("themeSelect")) $("themeSelect").value = selected;
+}
+
+function applyYearDisplay(value) {
+  yearDisplay = ["gregorian", "buddhist", "both"].includes(value) ? value : "gregorian";
+  localStorage.setItem(STORAGE.yearDisplay, yearDisplay);
+  if ($("yearDisplaySelect")) $("yearDisplaySelect").value = yearDisplay;
+  renderCalendar();
+  renderAudit();
 }
 
 function setDefaultDates() {
@@ -1931,30 +1945,28 @@ function addAudit(action, detail = "") {
   renderAudit();
 }
 
-function gregorianLocale() {
-  // "th" locale defaults to the Buddhist Era calendar (year + 543) in
-  // toLocaleDateString/toLocaleString. We display the Gregorian year as the
-  // primary year everywhere (matches backend dates, holiday sync, etc.) and
-  // separately append the Buddhist Era year for Thai-language users via
-  // buddhistYearSuffix(), rather than letting the browser silently swap
-  // which calendar is shown.
-  return lang === "th" ? "th-TH-u-ca-gregory" : lang;
+function dateLocale() {
+  // yearDisplay ("gregorian" | "buddhist" | "both") is a user preference set
+  // in Settings, independent of UI language. "th" locale defaults to the
+  // Buddhist Era calendar unless explicitly told otherwise; other locales
+  // default to Gregorian unless explicitly told to use Buddhist.
+  return yearDisplay === "buddhist" ? `${lang}-u-ca-buddhist` : `${lang}-u-ca-gregory`;
 }
 
 function buddhistYearSuffix(date) {
-  return lang === "th" ? ` (พ.ศ. ${date.getFullYear() + 543})` : "";
+  return yearDisplay === "both" ? ` (พ.ศ. ${date.getFullYear() + 543})` : "";
 }
 
 function formatWithBuddhistYear(date, { dateOnly = false } = {}) {
   const text = dateOnly
-    ? date.toLocaleDateString(gregorianLocale())
-    : date.toLocaleString(gregorianLocale());
+    ? date.toLocaleDateString(dateLocale())
+    : date.toLocaleString(dateLocale());
   return text + buddhistYearSuffix(date);
 }
 
 function formatAuditTime(value) {
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? String(value || "") : date.toLocaleString(gregorianLocale()) + buddhistYearSuffix(date);
+  return Number.isNaN(date.getTime()) ? String(value || "") : date.toLocaleString(dateLocale()) + buddhistYearSuffix(date);
 }
 
 function renderAudit() {
@@ -2438,7 +2450,7 @@ function getHolidayNotifications() {
       const days = Math.round((date.getTime() - today.getTime()) / 86400000);
       if (days < 0 || days > HOLIDAY_NOTIFICATION_WINDOW_DAYS) return null;
       const name = displayHolidayName(item);
-      const formattedDate = date.toLocaleDateString(gregorianLocale(), { year: "numeric", month: "long", day: "numeric", weekday: "short" }) + buddhistYearSuffix(date);
+      const formattedDate = date.toLocaleDateString(dateLocale(), { year: "numeric", month: "long", day: "numeric", weekday: "short" }) + buddhistYearSuffix(date);
       let message;
       if (days === 0) message = t("holiday_today", { name });
       else if (days === 1) message = t("holiday_tomorrow", { name });
@@ -2594,7 +2606,7 @@ function renderNextHoliday() {
     return;
   }
   const date = new Date(`${holidayDate(next)}T00:00:00`);
-  $("nextHolidayDate").textContent = date.toLocaleDateString(gregorianLocale(), { day: "2-digit", month: "short" }).toUpperCase();
+  $("nextHolidayDate").textContent = date.toLocaleDateString(dateLocale(), { day: "2-digit", month: "short" }).toUpperCase();
   $("nextHolidayName").textContent = `${displayHolidayName(next)} · ${t("thailand")}`;
 }
 
@@ -2613,7 +2625,7 @@ function renderCalendar() {
   if (!$("calendarGrid") || !$("calendarTitle")) return;
   const year = calendarCursor.getFullYear();
   const month = calendarCursor.getMonth();
-  $("calendarTitle").textContent = calendarCursor.toLocaleDateString(gregorianLocale(), { year: "numeric", month: "long" }) + buddhistYearSuffix(calendarCursor);
+  $("calendarTitle").textContent = calendarCursor.toLocaleDateString(dateLocale(), { year: "numeric", month: "long" }) + buddhistYearSuffix(calendarCursor);
   if ($("calendarNote")) {
     $("calendarNote").textContent = holidays.length ? "" : t("calendar_no_holiday_data");
     $("calendarNote").classList.toggle("hidden", holidays.length > 0);
@@ -3016,7 +3028,8 @@ function demoChatReply(query) {
     while (date.getDay() !== 6) date.setDate(date.getDate() + 1);
     if (includesAny(["下週", "下周", "next saturday", "เสาร์หน้า"])) date.setDate(date.getDate() + 7);
     const result = classifyDemoDate(date);
-    const dateText = date.toLocaleDateString(replyLang === "th" ? "th-TH-u-ca-gregory" : replyLang) + (replyLang === "th" ? ` (พ.ศ. ${date.getFullYear() + 543})` : "");
+    const replyLocale = replyLang === "th" ? (yearDisplay === "buddhist" ? "th-u-ca-buddhist" : "th-TH-u-ca-gregory") : replyLang;
+    const dateText = date.toLocaleDateString(replyLocale) + (replyLang === "th" ? buddhistYearSuffix(date) : "");
     return replyLang === "en"
       ? `${dateText}: your group is ${currentRotationGroup()}, and the working group is ${result.workingGroup || "—"}. You ${result.isWorkday ? "are scheduled to work" : "are off under the rotation schedule"}.`
       : replyLang === "th"

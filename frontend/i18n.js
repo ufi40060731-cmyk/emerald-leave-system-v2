@@ -1,5 +1,9 @@
 window.EMERALD_I18N = Object.freeze({
   "zh-TW": {
+    "year_display": "年份顯示方式",
+    "year_display_gregorian": "只顯示西元年",
+    "year_display_buddhist": "只顯示佛曆年",
+    "year_display_both": "西元年＋佛曆年都顯示",
     "calendar_no_holiday_data": "此年度的假日資料尚未初始化，顯示的日曆可能不含國定假日（HR/管理員登入時會自動嘗試初始化）。",
     "excel_import_type": "匯入類型",
     "excel_import_type_employees": "員工名單",
@@ -446,6 +450,10 @@ window.EMERALD_I18N = Object.freeze({
     "translation_missing_text": "此內容尚未提供目前語言的翻譯"
   },
   "en": {
+    "year_display": "Year display",
+    "year_display_gregorian": "Gregorian year only",
+    "year_display_buddhist": "Buddhist Era year only",
+    "year_display_both": "Show both years",
     "calendar_no_holiday_data": "Holiday data for this year hasn't been initialized yet, so the calendar may not show public holidays (HR/Admin logins auto-attempt initialization).",
     "excel_import_type": "Import type",
     "excel_import_type_employees": "Employee list",
@@ -892,6 +900,10 @@ window.EMERALD_I18N = Object.freeze({
     "translation_missing_text": "This content has not been translated into the selected language yet"
   },
   "th": {
+    "year_display": "รูปแบบการแสดงปี",
+    "year_display_gregorian": "แสดงเฉพาะปี ค.ศ.",
+    "year_display_buddhist": "แสดงเฉพาะปี พ.ศ.",
+    "year_display_both": "แสดงทั้งสองปี",
     "calendar_no_holiday_data": "ยังไม่มีการตั้งค่าข้อมูลวันหยุดสำหรับปีนี้ ปฏิทินอาจไม่แสดงวันหยุดราชการ (ผู้ใช้ hr/admin จะพยายามตั้งค่าโดยอัตโนมัติ)",
     "excel_import_type": "ประเภทการนำเข้า",
     "excel_import_type_employees": "รายชื่อพนักงาน",
