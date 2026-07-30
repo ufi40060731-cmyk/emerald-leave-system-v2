@@ -1,5 +1,7 @@
 window.EMERALD_I18N = Object.freeze({
   "zh-TW": {
+    "ai_leave_status_intro": "以下是你最近的請假紀錄（日期｜假別｜狀態）：",
+    "ai_leave_status_empty": "目前查不到你的請假紀錄，你可能還沒申請過假，或是還沒連上後端資料庫。",
     "onboarding_item_created_action": "新增新人必讀項目",
     "onboarding_item_updated_action": "更新新人必讀項目",
     "onboarding_item_deleted_action": "刪除新人必讀項目",
@@ -137,6 +139,7 @@ window.EMERALD_I18N = Object.freeze({
     "ai_q2": "請假申請會經過哪些審核？",
     "ai_q3": "泰國假日會自動更新嗎？",
     "ai_q4": "我這個星期六要上班嗎？",
+    "ai_q5": "我的請假記錄到哪了？",
     "ai_online": "知識庫聊天模式",
     "ai_offline": "展示聊天模式",
     "ai_online_notice": "可用繁體中文、English、ไทย提問；Chatbot 會依問題語言回答並參考公司 RAG 知識庫。重要規章仍請向 HR 確認。",
@@ -456,6 +459,8 @@ window.EMERALD_I18N = Object.freeze({
     "translation_missing_text": "此內容尚未提供目前語言的翻譯"
   },
   "en": {
+    "ai_leave_status_intro": "Here are your recent leave requests (date | type | status):",
+    "ai_leave_status_empty": "No leave requests found for you yet - you may not have applied for leave, or the backend isn't connected.",
     "onboarding_item_created_action": "Created onboarding item",
     "onboarding_item_updated_action": "Updated onboarding item",
     "onboarding_item_deleted_action": "Deleted onboarding item",
@@ -593,6 +598,7 @@ window.EMERALD_I18N = Object.freeze({
     "ai_q2": "What approvals does a leave request need?",
     "ai_q3": "Are Thai holidays updated automatically?",
     "ai_q4": "Do I work this Saturday?",
+    "ai_q5": "Where is my leave request status?",
     "ai_online": "Knowledge-base chat mode",
     "ai_offline": "Demo chat mode",
     "ai_online_notice": "Ask in Traditional Chinese, English, or Thai; the chatbot replies in the language of your question and uses the company RAG knowledge base. Confirm important policies with HR.",
@@ -912,6 +918,8 @@ window.EMERALD_I18N = Object.freeze({
     "translation_missing_text": "This content has not been translated into the selected language yet"
   },
   "th": {
+    "ai_leave_status_intro": "นี่คือคำขอลาล่าสุดของคุณ (วันที่ | ประเภท | สถานะ):",
+    "ai_leave_status_empty": "ยังไม่พบคำขอลาของคุณ อาจเป็นเพราะคุณยังไม่เคยยื่นคำขอลา หรือยังไม่ได้เชื่อมต่อระบบหลังบ้าน",
     "onboarding_item_created_action": "เพิ่มรายการปฐมนิเทศ",
     "onboarding_item_updated_action": "แก้ไขรายการปฐมนิเทศ",
     "onboarding_item_deleted_action": "ลบรายการปฐมนิเทศ",
@@ -1049,6 +1057,7 @@ window.EMERALD_I18N = Object.freeze({
     "ai_q2": "คำขอลาต้องผ่านการอนุมัติใดบ้าง?",
     "ai_q3": "วันหยุดไทยอัปเดตอัตโนมัติหรือไม่?",
     "ai_q4": "วันเสาร์นี้ฉันต้องทำงานไหม?",
+    "ai_q5": "คำขอลาของฉันไปถึงขั้นตอนไหนแล้ว?",
     "ai_online": "โหมดแชตฐานความรู้",
     "ai_offline": "โหมดแชตสาธิต",
     "ai_online_notice": "ถามได้ทั้งภาษาจีนตัวเต็ม ภาษาอังกฤษ และภาษาไทย โดย Chatbot จะตอบตามภาษาของคำถามและอ้างอิงฐานความรู้ RAG ของบริษัท โปรดยืนยันนโยบายสำคัญกับฝ่ายบุคคล",

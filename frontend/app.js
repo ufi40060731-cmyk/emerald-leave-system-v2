@@ -3228,6 +3228,26 @@ function demoChatReply(query) {
   return "我還不確定你想查哪一項。可以詢問新人規章、公司介紹、病假證明、審核流程、泰國假日、星期六輪休、特休餘額，或目前日期與時間。";
 }
 
+function detectsLeaveStatusQuery(query) {
+  const normalized = query.trim().toLowerCase();
+  const keywords = [
+    "請假記錄", "請假紀錄", "我的請假", "請假到哪", "請假進度", "請假狀態", "請假審核到",
+    "leave status", "leave record", "my leave", "where is my leave", "leave application status",
+    "สถานะการลา", "คำขอลา", "การลาไปถึง", "ประวัติการลา"
+  ];
+  return keywords.some(word => normalized.includes(word.toLowerCase()));
+}
+
+function buildLeaveStatusAnswer() {
+  if (!current) return t("ai_no_results");
+  const mine = requests
+    .filter(request => String(request.user || "").startsWith(current.id))
+    .slice(0, 5);
+  if (!mine.length) return t("ai_leave_status_empty");
+  const lines = mine.map(request => `${request.date}｜${t(request.type)}｜${t(request.status)}`);
+  return `${t("ai_leave_status_intro")}\n${lines.join("\n")}`;
+}
+
 async function sendAI() {
   const input = $("aiInput");
   const query = input.value.trim();
@@ -3246,7 +3266,10 @@ async function sendAI() {
   try {
     let answer;
     let sources = [];
-    if (!CONFIG.API_BASE_URL || !apiToken) {
+    if (detectsLeaveStatusQuery(query)) {
+      await new Promise(resolve => setTimeout(resolve, 200));
+      answer = buildLeaveStatusAnswer();
+    } else if (!CONFIG.API_BASE_URL || !apiToken) {
       await new Promise(resolve => setTimeout(resolve, 350));
       answer = demoChatReply(query);
     } else {
