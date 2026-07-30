@@ -1871,7 +1871,7 @@ class UserStatusUpdate(BaseModel):
 def admin_set_user_status(
     user_id: str,
     payload: UserStatusUpdate,
-    actor: Annotated[User, Depends(require_roles(Role.admin))],
+    actor: Annotated[User, Depends(require_roles(Role.hr, Role.admin))],
     db: Annotated[Session, Depends(get_db)],
 ) -> User:
     target_id = user_id.strip().upper()

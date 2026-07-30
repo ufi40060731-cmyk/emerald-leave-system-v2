@@ -507,7 +507,9 @@
           resetButton.textContent = "重設密碼";
           resetButton.addEventListener("click", () => resetPassword(user.id));
           actionsWrap.appendChild(resetButton);
+        }
 
+        if (currentRole === "admin" || currentRole === "hr") {
           const toggleButton = document.createElement("button");
           toggleButton.type = "button";
           toggleButton.className = user.is_active ? "danger small" : "secondary small";
