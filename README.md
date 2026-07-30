@@ -13,6 +13,7 @@
 |---|---|
 | 網站（前端＋API 同一網域） | https://emerald-app-production.up.railway.app |
 | 規章管理後台 | https://emerald-app-production.up.railway.app/admin_rules.html |
+| SOP 管理後台 | https://emerald-app-production.up.railway.app/admin_sops.html |
 | 員工管理後台 | https://emerald-app-production.up.railway.app/admin_users.html |
 | API 文件（Swagger） | https://emerald-app-production.up.railway.app/api/docs |
 | API 規格書（OpenAPI JSON） | https://emerald-app-production.up.railway.app/api/openapi.json |
@@ -84,18 +85,11 @@ Railway：MySQL 8（私有網路連線，DATABASE_URL）
 > 審核清單**（出勤頁面新增，主管/HR/Admin 可見，主管限自己部門）——這個
 > 之前也是只有「員工可以申請」，完全沒有「審核」的畫面，申請永遠卡在
 > 待審核狀態。
-
-### 已知還沒補上的功能（老實列出來，不是忘記，是還沒做）
-
-- **SOP 建立／編輯畫面**：後端有完整的新增/更新 SOP API（`POST /api/admin/sops`、
-  `PUT /api/admin/sops/{id}`），但前端目前沒有對應的管理介面，HR 沒辦法
-  透過網頁新增或編輯 SOP 內容。
-- **出勤紀錄 Excel 匯入**：後端有 `POST /api/attendance/import` 可以批次匯入
-  打卡紀錄（範本在 `data_templates/attendance_import_template.csv`），但
-  前端「Excel 管理」頁目前只接了員工名單匯入，沒有接這支出勤匯入 API。
-
-這兩個如果之後需要，做法會跟這次的其他修復一樣：照著已經有的 UI 模式
-（例如規章批次匯入、員工批次匯入）加一個對應頁面接上真正的 API。
+>
+> 這兩個之前列在「已知還沒補上的功能」的項目，這次也一併補上了：
+> **SOP 建立/編輯管理後台**（新的 `admin_sops.html`，用法跟規章、員工管理
+> 後台一致）跟**出勤紀錄 Excel 匯入**（「Excel 管理」頁新增「匯入類型」
+> 切換，可以選「員工名單」或「出勤紀錄」，各自對應真正的後端 API）。
 
 ---
 
@@ -156,11 +150,12 @@ manager），但不能動 `hr` 或 `admin` 角色的帳號；涉及其他 hr／a
 登入主系統 → 側邊欄「設定」→「修改密碼」，需輸入目前密碼＋新密碼（至少 8
 碼）。
 
-### 4. Excel 批次新增員工（主系統「Excel 管理」頁，`hr` / `admin` 可見）
+### 4. Excel 批次匯入（主系統「Excel 管理」頁，`hr` / `admin` 可見）
 
 ⚠️ 這個功能原本是專案範本裡的**假展示按鈕**（按下去不會真的做任何事），
-目前已經改成真正會動的批次匯入。使用方式：
+目前已經改成真正會動的批次匯入，並支援兩種「匯入類型」：
 
+**員工名單**
 1. 按「下載範本」拿到欄位正確的 CSV 檔（員工編號、姓名、角色、部門、輪班、
    初始密碼）。初始密碼欄位留空，系統會自動產生一組隨機密碼。
 2. 依範本格式填好員工名單，存成 CSV 或 XLSX（用 Excel 另存新檔即可，兩種
@@ -175,6 +170,28 @@ manager），但不能動 `hr` 或 `admin` 角色的帳號；涉及其他 hr／a
      顯示一次**，記得馬上分發給對應員工
    - HR 上傳的名單裡如果有 `hr`／`admin` 角色 → 後端會擋下來，計入「失敗」
      （跟員工管理後台一樣的權限限制，HR 不能批次新增高權限帳號）
+
+**出勤紀錄（打卡資料）**
+1. 「匯入類型」切換成「出勤紀錄」，按「下載範本」拿到欄位正確的 CSV
+   （員工編號、日期、預計上下班時間、實際打卡時間、狀態、來源、備註）。
+2. 依範本格式填好資料 → 選擇檔案 →「解析預覽」確認。
+3. 確認無誤後按「確認匯入」，會**一次性**把整批紀錄送到後端（跟員工匯入
+   逐筆呼叫不同，出勤匯入本來就是設計成批次寫入的 API）。
+   同一位員工同一天若已有紀錄，會直接覆蓋更新，不會重複。
+
+### 5. SOP 管理後台（`admin_sops.html`，`hr` / `admin` 可見，也可從主系統側邊欄「SOP 管理」開啟）
+
+- 新增/編輯 SOP：代碼、分類、版本、適用範圍（角色或部門，`all` 代表全公司）、
+  狀態（`draft` 草稿或 `published` 已發布）、是否必讀、排序、以及**中/英/泰
+  三語標題與摘要**。
+- 只有 `published` 狀態的 SOP，員工才會在「SOP 知識中心」看到、才能確認
+  閱讀；新建立的 SOP 預設是 `draft`，故意設計成這樣避免內容還沒寫完就被
+  員工看到。
+- 清單上的「發布」/「改回草稿」按鈕可以快速切換狀態，不用整份重新編輯。
+- 刪除是**永久刪除**（不像工作規章是軟刪除），但刪除當下會把完整內容
+  備份進稽核紀錄的 detail 欄位，需要復原可以請工程師手動從稽核紀錄還原。
+- HR/Admin 登入這個頁面時，看得到系統裡**所有** SOP（包含依角色/部門限定
+  可見範圍的），不受一般員工瀏覽時的權限篩選影響，方便管理。
 
 ---
 
@@ -353,11 +370,12 @@ DELETE /api/admin/work-rules/{rule_code}
 POST   /api/admin/work-rules/reseed
 
 SOP
-GET  /api/sops
-GET  /api/sops/progress
-POST /api/sops/{sop_id}/acknowledge
-POST /api/admin/sops
-PUT  /api/admin/sops/{sop_id}
+GET    /api/sops
+GET    /api/sops/progress
+POST   /api/sops/{sop_id}/acknowledge
+POST   /api/admin/sops
+PUT    /api/admin/sops/{sop_id}
+DELETE /api/admin/sops/{sop_id}
 
 出勤與缺卡修正
 GET  /api/attendance
@@ -442,6 +460,7 @@ backend/app/main.py     FastAPI 主程式（所有 API、資料模型、業務�
 backend/app/rag_service.py   RAG 靜態知識庫檢索與 LLM 呼叫
 frontend/index.html     主系統（單頁應用）
 frontend/admin_rules.html    規章管理後台
+frontend/admin_sops.html     SOP 管理後台
 frontend/admin_users.html    員工管理後台
 frontend/app.js / i18n.js    前端邏輯與三語翻譯
 rag/documents/           規章／SOP 原始文件（Markdown）

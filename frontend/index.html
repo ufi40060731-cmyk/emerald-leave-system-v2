@@ -293,7 +293,12 @@ main{padding:22px;min-width:0}.topbar{display:flex;justify-content:space-between
     <section class="page" data-page="excel">
       <article class="card">
         <h3 data-i18n="excel"></h3>
-        <p class="muted" data-i18n="excel_import_help"></p>
+        <label for="excelImportType" data-i18n="excel_import_type"></label>
+        <select id="excelImportType" style="margin-bottom: 14px;">
+          <option value="employees" data-i18n="excel_import_type_employees"></option>
+          <option value="attendance" data-i18n="excel_import_type_attendance"></option>
+        </select>
+        <p class="muted" id="excelImportHelp"></p>
         <div class="upload-box">
           <p>CSV / XLSX</p>
           <input type="file" id="excelFile" accept=".csv,.xlsx,.xls">
@@ -306,7 +311,7 @@ main{padding:22px;min-width:0}.topbar{display:flex;justify-content:space-between
         </div>
         <div id="excelPreviewWrap" class="hidden table-wrap">
           <table id="excelPreviewTable">
-            <thead>
+            <thead id="excelPreviewHead">
               <tr>
                 <th data-i18n="employee_id"></th>
                 <th data-i18n="name_label"></th>
@@ -357,9 +362,9 @@ window.EMERALD_CONFIG = window.EMERALD_CONFIG || Object.freeze({
 });
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="./config.js?v=20260730e"></script>
-<script src="./i18n.js?v=20260730e"></script>
-<script src="./app.js?v=20260730e"></script>
+<script src="./config.js?v=20260730f"></script>
+<script src="./i18n.js?v=20260730f"></script>
+<script src="./app.js?v=20260730f"></script>
 
 </body>
 </html>

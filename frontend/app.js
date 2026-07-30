@@ -167,6 +167,7 @@ const AUDIT_ALIASES = {
   sop_acknowledged: "sop_acknowledge_action",
   sop_created: "sop_created_action",
   sop_updated: "sop_updated_action",
+  sop_deleted: "sop_deleted_action",
   attendance_import: "excel_import_action",
   attendance_correction_requested: "attendance_correction_action",
   attendance_correction_approved: "approve_leave_action",
@@ -1421,13 +1422,17 @@ function bindEvents() {
     ]
   );
   $("exportReport").onclick = () => exportMonthlyReport();
-  $("downloadTemplate").onclick = () => downloadCSV("employee_import_template.csv", [
-    [t("employee_id"), t("name_label"), t("role"), t("department"), t("rotation"), t("initial_password")],
-    ["E101", "Somchai", "employee", t("production"), "A", ""],
-    ["E102", "Malee", "manager", t("production"), "B", ""]
-  ]);
+  $("downloadTemplate").onclick = () => downloadExcelTemplate();
   $("fakeImport").onclick = () => parseExcelFile();
   $("confirmExcelImport").onclick = () => confirmExcelImport();
+  $("excelImportType").onchange = () => {
+    updateExcelImportHelp();
+    $("excelPreviewWrap").classList.add("hidden");
+    $("confirmExcelImport").classList.add("hidden");
+    $("excelMessage").textContent = "";
+    excelParsedRows = [];
+  };
+  updateExcelImportHelp();
   $("aiSend").onclick = sendAI;
   $("aiClear").onclick = clearAIChat;
   $("resetOnboarding").onclick = resetOnboarding;
@@ -1627,6 +1632,12 @@ function buildNav() {
     rulesButton.textContent = t("rules_admin");
     rulesButton.onclick = () => window.open("./admin_rules.html", "_blank");
     $("mainNav").appendChild(rulesButton);
+
+    const sopsButton = document.createElement("button");
+    sopsButton.dataset.i18n = "sops_admin";
+    sopsButton.textContent = t("sops_admin");
+    sopsButton.onclick = () => window.open("./admin_sops.html", "_blank");
+    $("mainNav").appendChild(sopsButton);
   }
   renderNotificationNavBadge();
 }
@@ -1979,6 +1990,7 @@ function downloadCSV(filename, rows) {
 let excelParsedRows = [];
 const EXCEL_VALID_ROLES = ["employee", "manager", "hr", "admin"];
 const EXCEL_VALID_ROTATIONS = ["A", "B", "NONE"];
+const EXCEL_VALID_ATTENDANCE_STATUS = ["normal", "late", "early_leave", "missing_punch", "absent", "day_off"];
 
 function parseCsvText(text) {
   return text.split(/\r?\n/)
@@ -2001,7 +2013,23 @@ function normalizeEmployeeRow(cells) {
   };
 }
 
-function readEmployeeFileRows(file) {
+function normalizeAttendanceRow(cells) {
+  const [employeeId, workDate, scheduledStart, scheduledEnd, clockIn, clockOut, status, source, note] = cells;
+  const normalizedStatus = (status || "").trim().toLowerCase();
+  return {
+    employee_id: (employeeId || "").trim().toUpperCase(),
+    work_date: (workDate || "").trim(),
+    scheduled_start: (scheduledStart || "").trim() || "08:00",
+    scheduled_end: (scheduledEnd || "").trim() || "17:00",
+    clock_in: (clockIn || "").trim() || null,
+    clock_out: (clockOut || "").trim() || null,
+    status: EXCEL_VALID_ATTENDANCE_STATUS.includes(normalizedStatus) ? normalizedStatus : "normal",
+    source: (source || "").trim() || "import",
+    note: (note || "").trim()
+  };
+}
+
+function readImportFileRows(file) {
   return new Promise((resolve, reject) => {
     const isCsv = /\.csv$/i.test(file.name);
     const reader = new FileReader();
@@ -2026,14 +2054,51 @@ function readEmployeeFileRows(file) {
   });
 }
 
+function updateExcelImportHelp() {
+  const isAttendance = $("excelImportType").value === "attendance";
+  $("excelImportHelp").textContent = isAttendance ? t("excel_import_help_attendance") : t("excel_import_help");
+}
+
+function downloadExcelTemplate() {
+  if ($("excelImportType").value === "attendance") {
+    downloadCSV("attendance_import_template.csv", [
+      ["employee_id", "work_date", "scheduled_start", "scheduled_end", "clock_in", "clock_out", "status", "source", "note"],
+      ["E001", "2026-07-20", "08:00", "17:00", "07:56", "17:08", "normal", "device-import", ""],
+      ["E002", "2026-07-20", "08:00", "17:00", "08:12", "17:03", "late", "device-import", "Traffic delay"]
+    ]);
+    return;
+  }
+  downloadCSV("employee_import_template.csv", [
+    [t("employee_id"), t("name_label"), t("role"), t("department"), t("rotation"), t("initial_password")],
+    ["E101", "Somchai", "employee", t("production"), "A", ""],
+    ["E102", "Malee", "manager", t("production"), "B", ""]
+  ]);
+}
+
 function renderExcelPreview(rows) {
-  $("excelPreviewBody").innerHTML = rows.map(row => "<tr>" +
-    `<td>${escapeHtml(row.id)}</td>` +
-    `<td>${escapeHtml(row.name)}</td>` +
-    `<td>${escapeHtml(row.role)}</td>` +
-    `<td>${escapeHtml(row.department)}</td>` +
-    `<td>${escapeHtml(row.rotation_group)}</td>` +
-    "</tr>"
+  const isAttendance = $("excelImportType").value === "attendance";
+  $("excelPreviewHead").innerHTML = isAttendance
+    ? `<tr><th>${escapeHtml(t("employee_id"))}</th><th>${escapeHtml(t("correction_date"))}</th>` +
+      `<th>${escapeHtml(t("clock_in"))}</th><th>${escapeHtml(t("clock_out"))}</th>` +
+      `<th>${escapeHtml(t("attendance_status"))}</th></tr>`
+    : `<tr><th>${escapeHtml(t("employee_id"))}</th><th>${escapeHtml(t("name_label"))}</th>` +
+      `<th>${escapeHtml(t("role"))}</th><th>${escapeHtml(t("department"))}</th><th>${escapeHtml(t("rotation"))}</th></tr>`;
+
+  $("excelPreviewBody").innerHTML = rows.map(row => isAttendance
+    ? "<tr>" +
+      `<td>${escapeHtml(row.employee_id)}</td>` +
+      `<td>${escapeHtml(row.work_date)}</td>` +
+      `<td>${escapeHtml(row.clock_in || "—")}</td>` +
+      `<td>${escapeHtml(row.clock_out || "—")}</td>` +
+      `<td>${escapeHtml(row.status)}</td>` +
+      "</tr>"
+    : "<tr>" +
+      `<td>${escapeHtml(row.id)}</td>` +
+      `<td>${escapeHtml(row.name)}</td>` +
+      `<td>${escapeHtml(row.role)}</td>` +
+      `<td>${escapeHtml(row.department)}</td>` +
+      `<td>${escapeHtml(row.rotation_group)}</td>` +
+      "</tr>"
   ).join("");
 }
 
@@ -2043,11 +2108,15 @@ async function parseExcelFile() {
     $("excelMessage").textContent = t("select_file");
     return;
   }
+  const isAttendance = $("excelImportType").value === "attendance";
 
   try {
-    const rows = await readEmployeeFileRows(file);
+    const rows = await readImportFileRows(file);
     const dataRows = rows.slice(1).filter(row => row.some(cell => String(cell || "").trim()));
-    excelParsedRows = dataRows.map(normalizeEmployeeRow).filter(row => row.id && row.name);
+
+    excelParsedRows = isAttendance
+      ? dataRows.map(normalizeAttendanceRow).filter(row => row.employee_id && /^\d{4}-\d{2}-\d{2}$/.test(row.work_date))
+      : dataRows.map(normalizeEmployeeRow).filter(row => row.id && row.name);
 
     if (!excelParsedRows.length) {
       $("excelMessage").textContent = t("no_data");
@@ -2061,19 +2130,12 @@ async function parseExcelFile() {
     $("confirmExcelImport").classList.remove("hidden");
     $("excelMessage").textContent = t("excel_parse_success", { count: excelParsedRows.length });
   } catch (error) {
-    console.error("Failed to parse employee import file.", error);
+    console.error("Failed to parse import file.", error);
     $("excelMessage").textContent = `${t("excel_parse_error")} ${error.message || ""}`;
   }
 }
 
-async function confirmExcelImport() {
-  if (!excelParsedRows.length) return;
-  if (!CONFIG.API_BASE_URL || !apiToken) {
-    $("excelMessage").textContent = t("backend_unavailable");
-    return;
-  }
-
-  $("confirmExcelImport").disabled = true;
+async function confirmEmployeeImport() {
   let created = 0;
   let skipped = 0;
   let failed = 0;
@@ -2106,15 +2168,52 @@ async function confirmExcelImport() {
 
   addAudit("excel_import_action");
   $("excelMessage").textContent = t("excel_import_summary", { created, skipped, failed });
+  if (generatedPasswords.length) {
+    alert(`${t("excel_import_passwords_title")}\n\n${generatedPasswords.join("\n")}\n\n${t("excel_import_passwords_note")}`);
+  }
+}
+
+async function confirmAttendanceImport() {
+  $("excelMessage").textContent = t("importing");
+  try {
+    const response = await fetch(apiUrl("/api/attendance/import"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiToken}` },
+      body: JSON.stringify({ records: excelParsedRows })
+    });
+    const data = await readJsonSafely(response);
+    if (!response.ok) {
+      $("excelMessage").textContent = `${t("action_failed")} ${data.detail || response.status}`;
+      return;
+    }
+    addAudit("excel_import_action");
+    $("excelMessage").textContent = t("attendance_import_summary", {
+      inserted: data.inserted ?? 0,
+      updated: data.updated ?? 0
+    });
+  } catch (error) {
+    $("excelMessage").textContent = `${t("backend_unavailable")} ${error.message || ""}`;
+  }
+}
+
+async function confirmExcelImport() {
+  if (!excelParsedRows.length) return;
+  if (!CONFIG.API_BASE_URL || !apiToken) {
+    $("excelMessage").textContent = t("backend_unavailable");
+    return;
+  }
+
+  $("confirmExcelImport").disabled = true;
+  if ($("excelImportType").value === "attendance") {
+    await confirmAttendanceImport();
+  } else {
+    await confirmEmployeeImport();
+  }
   $("confirmExcelImport").disabled = false;
   $("confirmExcelImport").classList.add("hidden");
   $("excelPreviewWrap").classList.add("hidden");
   excelParsedRows = [];
   $("excelFile").value = "";
-
-  if (generatedPasswords.length) {
-    alert(`${t("excel_import_passwords_title")}\n\n${generatedPasswords.join("\n")}\n\n${t("excel_import_passwords_note")}`);
-  }
 }
 
 function renderBars() {

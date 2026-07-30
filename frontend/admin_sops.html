@@ -1,0 +1,849 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Emerald SOP 管理後台</title>
+  <style>
+    :root {
+      font-family: "Segoe UI", "Microsoft JhengHei", sans-serif;
+      color: #1f2937;
+      background: #f3f4f6;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #0f766e;
+      color: white;
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    header p {
+      margin: 4px 0 0;
+      opacity: 0.85;
+      font-size: 14px;
+    }
+
+    header a {
+      color: #d1fae5;
+      font-size: 13px;
+    }
+
+    main {
+      width: min(1180px, calc(100% - 32px));
+      margin: 28px auto;
+    }
+
+    .card {
+      background: white;
+      border-radius: 14px;
+      padding: 22px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    }
+
+    h2 {
+      margin-top: 0;
+      font-size: 19px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .grid3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .full { grid-column: 1 / -1; }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    input, select, textarea, button {
+      width: 100%;
+      border-radius: 8px;
+      font: inherit;
+    }
+
+    input, select, textarea {
+      min-height: 42px;
+      border: 1px solid #cbd5e1;
+      padding: 9px 11px;
+      background: white;
+    }
+
+    textarea {
+      min-height: 90px;
+      resize: vertical;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: 2px solid #99f6e4;
+      border-color: #0f766e;
+    }
+
+    button {
+      border: 0;
+      min-height: 42px;
+      padding: 9px 14px;
+      cursor: pointer;
+      font-weight: 700;
+      background: #0f766e;
+      color: white;
+    }
+
+    button:hover { filter: brightness(0.94); }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    .secondary {
+      width: auto;
+      background: #334155;
+    }
+
+    .danger {
+      width: auto;
+      background: #b91c1c;
+    }
+
+    .small {
+      width: auto;
+      min-height: 32px;
+      padding: 6px 10px;
+      font-size: 13px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .status {
+      min-height: 24px;
+      margin-top: 12px;
+      font-size: 14px;
+      white-space: pre-wrap;
+    }
+
+    .status.ok { color: #047857; }
+    .status.error { color: #b91c1c; }
+    .hidden { display: none !important; }
+
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 960px;
+    }
+
+    th, td {
+      border-bottom: 1px solid #e2e8f0;
+      padding: 11px 10px;
+      text-align: left;
+      font-size: 14px;
+      vertical-align: top;
+    }
+
+    th { background: #f8fafc; }
+
+    td.content-cell {
+      max-width: 300px;
+      white-space: pre-wrap;
+      color: #475569;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .top-info {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      font-size: 14px;
+    }
+
+    .muted {
+      color: #64748b;
+      font-size: 13px;
+    }
+
+    .row-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    fieldset {
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 14px;
+      margin: 0 0 14px;
+    }
+
+    legend {
+      font-weight: 700;
+      padding: 0 6px;
+      font-size: 13px;
+      color: #0f766e;
+    }
+
+    @media (max-width: 720px) {
+      .grid, .grid3 { grid-template-columns: 1fr; }
+
+      header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Emerald SOP 管理後台</h1>
+      <p>新增 / 編輯 / 刪除「SOP 知識中心」顯示給員工的 SOP 文件</p>
+    </div>
+
+    <div class="top-info">
+      <a href="./index.html">← 回主系統</a>
+      <span id="sessionPanel" class="top-info hidden">
+        <span id="currentUser"></span>
+        <button id="logoutButton" class="danger small" type="button">登出</button>
+      </span>
+    </div>
+  </header>
+
+  <main>
+    <section id="loginCard" class="card">
+      <h2>HR / 管理員登入</h2>
+      <p class="muted">只有 hr 或 admin 角色可以管理 SOP。</p>
+
+      <form id="loginForm" class="grid">
+        <div>
+          <label for="account">帳號</label>
+          <input id="account" value="HR001" autocomplete="username" required>
+        </div>
+
+        <div>
+          <label for="loginPassword">密碼</label>
+          <input
+            id="loginPassword"
+            type="password"
+            value=""
+            autocomplete="current-password"
+            required
+          >
+        </div>
+
+        <div class="full">
+          <button id="loginButton" type="submit">登入後台</button>
+        </div>
+      </form>
+
+      <div id="loginStatus" class="status"></div>
+    </section>
+
+    <div id="adminArea" class="hidden">
+      <section class="card">
+        <h2 id="formTitle">新增 SOP</h2>
+        <p class="muted">
+          新建立的 SOP 預設狀態是 <code>draft</code>（草稿），員工不會看到、也不能確認閱讀，
+          只有狀態改成 <code>published</code>（已發布）才會出現在員工的「SOP 知識中心」裡。
+        </p>
+
+        <form id="sopForm">
+          <fieldset>
+            <legend>基本資訊</legend>
+            <div class="grid3">
+              <div>
+                <label for="sopCode">代碼</label>
+                <input id="sopCode" maxlength="30" placeholder="例如 SAFETY-01" required>
+              </div>
+              <div>
+                <label for="sopCategory">分類</label>
+                <input id="sopCategory" maxlength="40" placeholder="例如 safety" required>
+              </div>
+              <div>
+                <label for="sopVersion">版本</label>
+                <input id="sopVersion" maxlength="40" value="1.0" required>
+              </div>
+              <div>
+                <label for="sopRoleScope">適用範圍（角色/部門，逗號分隔，all = 全公司）</label>
+                <input id="sopRoleScope" maxlength="120" value="all" required>
+              </div>
+              <div>
+                <label for="sopStatus">狀態</label>
+                <select id="sopStatus">
+                  <option value="draft">draft（草稿，員工看不到）</option>
+                  <option value="published">published（已發布，員工看得到）</option>
+                </select>
+              </div>
+              <div>
+                <label for="sopSortOrder">排序（數字越小越前面）</label>
+                <input id="sopSortOrder" type="number" value="0" required>
+              </div>
+              <div>
+                <label for="sopRequired">是否必讀</label>
+                <select id="sopRequired">
+                  <option value="true">必讀</option>
+                  <option value="false">選讀</option>
+                </select>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>標題（三語）</legend>
+            <div class="grid3">
+              <div>
+                <label for="sopTitleZh">繁體中文標題</label>
+                <input id="sopTitleZh" maxlength="180" required>
+              </div>
+              <div>
+                <label for="sopTitleEn">English title</label>
+                <input id="sopTitleEn" maxlength="180">
+              </div>
+              <div>
+                <label for="sopTitleTh">ชื่อภาษาไทย</label>
+                <input id="sopTitleTh" maxlength="180">
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>摘要（三語，Chatbot 與卡片列表會顯示這段文字）</legend>
+            <div class="grid3">
+              <div>
+                <label for="sopSummaryZh">繁體中文摘要</label>
+                <textarea id="sopSummaryZh"></textarea>
+              </div>
+              <div>
+                <label for="sopSummaryEn">English summary</label>
+                <textarea id="sopSummaryEn"></textarea>
+              </div>
+              <div>
+                <label for="sopSummaryTh">สรุปภาษาไทย</label>
+                <textarea id="sopSummaryTh"></textarea>
+              </div>
+            </div>
+          </fieldset>
+
+          <div class="actions">
+            <button id="saveButton" type="submit">新增 SOP</button>
+            <button id="cancelEditButton" class="secondary hidden" type="button">取消編輯</button>
+          </div>
+        </form>
+
+        <div id="formStatus" class="status"></div>
+      </section>
+
+      <section class="card">
+        <div class="actions">
+          <h2 style="margin: 0; flex: 1;">目前 SOP 清單</h2>
+          <button id="refreshButton" class="secondary" type="button">重新整理</button>
+        </div>
+
+        <p class="muted">刪除為永久刪除（非軟刪除）；刪除當下會把完整內容備份進稽核紀錄，需要復原時可請工程師協助從稽核紀錄還原。</p>
+        <div id="listStatus" class="status"></div>
+
+        <input
+          id="sopSearchInput"
+          type="search"
+          placeholder="搜尋代碼／標題／分類關鍵字…"
+          style="margin-bottom: 12px;"
+        >
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>代碼</th>
+                <th>標題（中）</th>
+                <th>分類</th>
+                <th>版本</th>
+                <th>狀態</th>
+                <th>必讀</th>
+                <th>適用範圍</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="sopTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="./config.js?v=20260730"></script>
+  <script>
+    "use strict";
+
+    const API_BASE = (window.EMERALD_CONFIG && window.EMERALD_CONFIG.API_BASE_URL)
+      ? window.EMERALD_CONFIG.API_BASE_URL
+      : ((location.protocol === "http:" || location.protocol === "https:") ? location.origin : "");
+    const TOKEN_KEY = "emerald_admin_access_token";
+
+    const loginCard = document.getElementById("loginCard");
+    const adminArea = document.getElementById("adminArea");
+    const sessionPanel = document.getElementById("sessionPanel");
+    const currentUser = document.getElementById("currentUser");
+
+    const loginForm = document.getElementById("loginForm");
+    const sopForm = document.getElementById("sopForm");
+
+    const loginStatus = document.getElementById("loginStatus");
+    const formStatus = document.getElementById("formStatus");
+    const listStatus = document.getElementById("listStatus");
+
+    const sopTableBody = document.getElementById("sopTableBody");
+    const formTitle = document.getElementById("formTitle");
+    const sopSearchInput = document.getElementById("sopSearchInput");
+
+    const sopCodeInput = document.getElementById("sopCode");
+    const sopCategoryInput = document.getElementById("sopCategory");
+    const sopVersionInput = document.getElementById("sopVersion");
+    const sopRoleScopeInput = document.getElementById("sopRoleScope");
+    const sopStatusInput = document.getElementById("sopStatus");
+    const sopSortOrderInput = document.getElementById("sopSortOrder");
+    const sopRequiredInput = document.getElementById("sopRequired");
+    const sopTitleZhInput = document.getElementById("sopTitleZh");
+    const sopTitleEnInput = document.getElementById("sopTitleEn");
+    const sopTitleThInput = document.getElementById("sopTitleTh");
+    const sopSummaryZhInput = document.getElementById("sopSummaryZh");
+    const sopSummaryEnInput = document.getElementById("sopSummaryEn");
+    const sopSummaryThInput = document.getElementById("sopSummaryTh");
+
+    const loginButton = document.getElementById("loginButton");
+    const saveButton = document.getElementById("saveButton");
+    const cancelEditButton = document.getElementById("cancelEditButton");
+    const refreshButton = document.getElementById("refreshButton");
+    const logoutButton = document.getElementById("logoutButton");
+
+    let editingId = null;
+    let allSops = [];
+
+    function setStatus(element, message, type = "") {
+      element.textContent = message;
+      element.className = `status ${type}`.trim();
+    }
+
+    function getToken() {
+      return sessionStorage.getItem(TOKEN_KEY) || "";
+    }
+
+    function setToken(token) {
+      if (token) {
+        sessionStorage.setItem(TOKEN_KEY, token);
+      } else {
+        sessionStorage.removeItem(TOKEN_KEY);
+      }
+    }
+
+    async function readJsonSafely(response) {
+      const text = await response.text();
+      if (!text) return {};
+      try {
+        return JSON.parse(text);
+      } catch {
+        return { detail: text };
+      }
+    }
+
+    function errorMessage(data, fallback) {
+      if (typeof data?.detail === "string") return data.detail;
+      if (Array.isArray(data?.detail)) {
+        return data.detail.map(item => item.msg || JSON.stringify(item)).join("\n");
+      }
+      return fallback;
+    }
+
+    async function apiFetch(path, options = {}) {
+      const token = getToken();
+      const headers = new Headers(options.headers || {});
+      if (options.body && !headers.has("Content-Type")) {
+        headers.set("Content-Type", "application/json");
+      }
+      if (token) {
+        headers.set("Authorization", `Bearer ${token}`);
+      }
+      return fetch(`${API_BASE}${path}`, { ...options, headers });
+    }
+
+    function showLoggedOut() {
+      loginCard.classList.remove("hidden");
+      adminArea.classList.add("hidden");
+      sessionPanel.classList.add("hidden");
+      currentUser.textContent = "";
+      sopTableBody.innerHTML = "";
+    }
+
+    function showLoggedIn(user) {
+      loginCard.classList.add("hidden");
+      adminArea.classList.remove("hidden");
+      sessionPanel.classList.remove("hidden");
+      currentUser.textContent = `${user.id}｜${user.name}｜${user.role}`;
+    }
+
+    function resetForm() {
+      editingId = null;
+      sopForm.reset();
+      sopCodeInput.disabled = false;
+      sopVersionInput.value = "1.0";
+      sopRoleScopeInput.value = "all";
+      sopSortOrderInput.value = "0";
+      formTitle.textContent = "新增 SOP";
+      saveButton.textContent = "新增 SOP";
+      cancelEditButton.classList.add("hidden");
+    }
+
+    function startEdit(sop) {
+      editingId = sop.id;
+      sopCodeInput.value = sop.code;
+      sopCodeInput.disabled = true;
+      sopCategoryInput.value = sop.category;
+      sopVersionInput.value = sop.version;
+      sopRoleScopeInput.value = sop.role_scope;
+      sopStatusInput.value = sop.status;
+      sopSortOrderInput.value = sop.sort_order;
+      sopRequiredInput.value = String(Boolean(sop.required));
+      sopTitleZhInput.value = sop.title_zh || "";
+      sopTitleEnInput.value = sop.title_en || "";
+      sopTitleThInput.value = sop.title_th || "";
+      sopSummaryZhInput.value = sop.summary_zh || "";
+      sopSummaryEnInput.value = sop.summary_en || "";
+      sopSummaryThInput.value = sop.summary_th || "";
+      formTitle.textContent = `編輯 SOP：${sop.code}`;
+      saveButton.textContent = "更新 SOP";
+      cancelEditButton.classList.remove("hidden");
+      setStatus(formStatus, "");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function filterAndRenderSops() {
+      const query = sopSearchInput.value.trim().toLowerCase();
+      const filtered = !query
+        ? allSops
+        : allSops.filter(sop =>
+            [sop.code, sop.title_zh, sop.title_en, sop.category]
+              .some(field => String(field || "").toLowerCase().includes(query))
+          );
+      renderSops(filtered);
+      setStatus(
+        listStatus,
+        query ? `符合「${query}」共 ${filtered.length} / ${allSops.length} 筆` : `共 ${allSops.length} 筆 SOP`,
+        "ok"
+      );
+    }
+
+    function renderSops(sops) {
+      sopTableBody.innerHTML = "";
+
+      for (const sop of sops) {
+        const row = document.createElement("tr");
+
+        const codeCell = document.createElement("td");
+        codeCell.textContent = sop.code;
+        row.appendChild(codeCell);
+
+        const titleCell = document.createElement("td");
+        titleCell.textContent = sop.title_zh;
+        row.appendChild(titleCell);
+
+        const categoryCell = document.createElement("td");
+        const catBadge = document.createElement("span");
+        catBadge.className = "badge";
+        catBadge.textContent = sop.category;
+        categoryCell.appendChild(catBadge);
+        row.appendChild(categoryCell);
+
+        const versionCell = document.createElement("td");
+        versionCell.textContent = sop.version;
+        row.appendChild(versionCell);
+
+        const statusCell = document.createElement("td");
+        const statusBadge = document.createElement("span");
+        statusBadge.className = "badge";
+        statusBadge.textContent = sop.status;
+        statusBadge.style.background = sop.status === "published" ? "#dcfce7" : "#fef3c7";
+        statusBadge.style.color = sop.status === "published" ? "#166534" : "#92400e";
+        statusCell.appendChild(statusBadge);
+        row.appendChild(statusCell);
+
+        const requiredCell = document.createElement("td");
+        requiredCell.textContent = sop.required ? "必讀" : "選讀";
+        row.appendChild(requiredCell);
+
+        const scopeCell = document.createElement("td");
+        scopeCell.className = "content-cell";
+        scopeCell.textContent = sop.role_scope;
+        row.appendChild(scopeCell);
+
+        const actionsCell = document.createElement("td");
+        const actionsWrap = document.createElement("div");
+        actionsWrap.className = "row-actions";
+
+        const editButton = document.createElement("button");
+        editButton.type = "button";
+        editButton.className = "secondary small";
+        editButton.textContent = "編輯";
+        editButton.addEventListener("click", () => startEdit(sop));
+        actionsWrap.appendChild(editButton);
+
+        const toggleButton = document.createElement("button");
+        toggleButton.type = "button";
+        toggleButton.className = "secondary small";
+        toggleButton.textContent = sop.status === "published" ? "改回草稿" : "發布";
+        toggleButton.addEventListener("click", () => toggleSopStatus(sop));
+        actionsWrap.appendChild(toggleButton);
+
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className = "danger small";
+        deleteButton.textContent = "刪除";
+        deleteButton.addEventListener("click", () => deleteSop(sop));
+        actionsWrap.appendChild(deleteButton);
+
+        actionsCell.appendChild(actionsWrap);
+        row.appendChild(actionsCell);
+
+        sopTableBody.appendChild(row);
+      }
+    }
+
+    async function loadCurrentUser() {
+      const response = await apiFetch("/api/me");
+      const data = await readJsonSafely(response);
+
+      if (!response.ok) {
+        throw new Error(errorMessage(data, "登入狀態失效"));
+      }
+
+      if (data.role !== "hr" && data.role !== "admin") {
+        throw new Error("此頁面只允許 hr 或 admin 角色使用");
+      }
+
+      showLoggedIn(data);
+      return data;
+    }
+
+    async function loadSops() {
+      refreshButton.disabled = true;
+      setStatus(listStatus, "讀取 SOP 中…");
+
+      try {
+        const response = await apiFetch("/api/sops");
+        const data = await readJsonSafely(response);
+
+        if (!response.ok) {
+          throw new Error(errorMessage(data, `讀取失敗（${response.status}）`));
+        }
+
+        allSops = data;
+        filterAndRenderSops();
+      } catch (error) {
+        setStatus(listStatus, error.message, "error");
+      } finally {
+        refreshButton.disabled = false;
+      }
+    }
+
+    async function toggleSopStatus(sop) {
+      const newStatus = sop.status === "published" ? "draft" : "published";
+      try {
+        const response = await apiFetch(`/api/admin/sops/${sop.id}`, {
+          method: "PUT",
+          body: JSON.stringify({ status: newStatus })
+        });
+
+        if (!response.ok) {
+          const data = await readJsonSafely(response);
+          throw new Error(errorMessage(data, `更新失敗（${response.status}）`));
+        }
+
+        setStatus(listStatus, `${sop.code} 已改成 ${newStatus}`, "ok");
+        await loadSops();
+      } catch (error) {
+        setStatus(listStatus, error.message, "error");
+      }
+    }
+
+    async function deleteSop(sop) {
+      if (!confirm(`確定要刪除 SOP ${sop.code} 嗎？此動作無法在畫面上復原（但完整內容會備份進稽核紀錄）。`)) {
+        return;
+      }
+
+      try {
+        const response = await apiFetch(`/api/admin/sops/${sop.id}`, { method: "DELETE" });
+
+        if (!response.ok) {
+          const data = await readJsonSafely(response);
+          throw new Error(errorMessage(data, `刪除失敗（${response.status}）`));
+        }
+
+        setStatus(listStatus, `SOP ${sop.code} 已刪除`, "ok");
+        if (editingId === sop.id) resetForm();
+        await loadSops();
+      } catch (error) {
+        setStatus(listStatus, error.message, "error");
+      }
+    }
+
+    loginForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      loginButton.disabled = true;
+      setStatus(loginStatus, "登入中…");
+
+      try {
+        const account = document.getElementById("account").value.trim();
+        const password = document.getElementById("loginPassword").value;
+
+        const response = await fetch(`${API_BASE}/api/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ account, password })
+        });
+
+        const data = await readJsonSafely(response);
+
+        if (!response.ok) {
+          throw new Error(errorMessage(data, `登入失敗（${response.status}）`));
+        }
+
+        if (data.user?.role !== "hr" && data.user?.role !== "admin") {
+          throw new Error("此頁面只允許 hr 或 admin 角色登入");
+        }
+
+        setToken(data.access_token);
+        showLoggedIn(data.user);
+        setStatus(loginStatus, "");
+        await loadSops();
+      } catch (error) {
+        setToken("");
+        showLoggedOut();
+        setStatus(loginStatus, error.message, "error");
+      } finally {
+        loginButton.disabled = false;
+      }
+    });
+
+    sopForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      saveButton.disabled = true;
+      setStatus(formStatus, editingId ? "更新中…" : "新增中…");
+
+      const payload = {
+        category: sopCategoryInput.value.trim(),
+        role_scope: sopRoleScopeInput.value.trim() || "all",
+        title_zh: sopTitleZhInput.value.trim(),
+        title_en: sopTitleEnInput.value.trim(),
+        title_th: sopTitleThInput.value.trim(),
+        summary_zh: sopSummaryZhInput.value.trim(),
+        summary_en: sopSummaryEnInput.value.trim(),
+        summary_th: sopSummaryThInput.value.trim(),
+        version: sopVersionInput.value.trim() || "1.0",
+        status: sopStatusInput.value,
+        required: sopRequiredInput.value === "true",
+        sort_order: Number(sopSortOrderInput.value) || 0
+      };
+
+      try {
+        let response;
+
+        if (editingId) {
+          response = await apiFetch(`/api/admin/sops/${editingId}`, {
+            method: "PUT",
+            body: JSON.stringify(payload)
+          });
+        } else {
+          response = await apiFetch("/api/admin/sops", {
+            method: "POST",
+            body: JSON.stringify({
+              code: sopCodeInput.value.trim().toUpperCase(),
+              ...payload
+            })
+          });
+        }
+
+        const data = await readJsonSafely(response);
+
+        if (!response.ok) {
+          throw new Error(errorMessage(data, `儲存失敗（${response.status}）`));
+        }
+
+        setStatus(formStatus, `SOP ${data.code} 已${editingId ? "更新" : "新增"}成功`, "ok");
+        resetForm();
+        await loadSops();
+      } catch (error) {
+        setStatus(formStatus, error.message, "error");
+      } finally {
+        saveButton.disabled = false;
+      }
+    });
+
+    cancelEditButton.addEventListener("click", resetForm);
+    refreshButton.addEventListener("click", loadSops);
+    sopSearchInput.addEventListener("input", filterAndRenderSops);
+
+    logoutButton.addEventListener("click", () => {
+      setToken("");
+      showLoggedOut();
+      setStatus(loginStatus, "已登出", "ok");
+    });
+
+    async function initialize() {
+      if (!getToken()) {
+        showLoggedOut();
+        return;
+      }
+
+      try {
+        await loadCurrentUser();
+        await loadSops();
+      } catch (error) {
+        setToken("");
+        showLoggedOut();
+        setStatus(loginStatus, error.message, "error");
+      }
+    }
+
+    initialize();
+  </script>
+</body>
+</html>

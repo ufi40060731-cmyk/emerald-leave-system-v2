@@ -2639,6 +2639,8 @@ def list_sops(
     if category:
         stmt = stmt.where(SOPDocument.category == category)
     items = list(db.scalars(stmt))
+    if user.role in {Role.hr.value, Role.admin.value}:
+        return items
     department = user.department.lower()
     return [
         item for item in items
