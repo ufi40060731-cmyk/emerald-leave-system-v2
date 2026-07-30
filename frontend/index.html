@@ -290,7 +290,34 @@ main{padding:22px;min-width:0}.topbar{display:flex;justify-content:space-between
     </section>
 
     <section class="page" data-page="excel">
-      <article class="card"><h3 data-i18n="excel"></h3><div class="upload-box"><p>CSV / XLSX</p><input type="file" id="excelFile" accept=".csv,.xlsx,.xls"><div class="button-row"><button class="primary" id="fakeImport" data-i18n="import"></button><button class="soft" id="downloadTemplate" data-i18n="download_template"></button></div><p id="excelMessage"></p></div></article>
+      <article class="card">
+        <h3 data-i18n="excel"></h3>
+        <p class="muted" data-i18n="excel_import_help"></p>
+        <div class="upload-box">
+          <p>CSV / XLSX</p>
+          <input type="file" id="excelFile" accept=".csv,.xlsx,.xls">
+          <div class="button-row">
+            <button class="primary" id="fakeImport" data-i18n="parse_preview"></button>
+            <button class="soft" id="downloadTemplate" data-i18n="download_template"></button>
+            <button class="primary hidden" id="confirmExcelImport" data-i18n="confirm_import"></button>
+          </div>
+          <p id="excelMessage"></p>
+        </div>
+        <div id="excelPreviewWrap" class="hidden table-wrap">
+          <table id="excelPreviewTable">
+            <thead>
+              <tr>
+                <th data-i18n="employee_id"></th>
+                <th data-i18n="name_label"></th>
+                <th data-i18n="role"></th>
+                <th data-i18n="department"></th>
+                <th data-i18n="rotation"></th>
+              </tr>
+            </thead>
+            <tbody id="excelPreviewBody"></tbody>
+          </table>
+        </div>
+      </article>
     </section>
 
     <section class="page" data-page="notifications">
@@ -328,9 +355,10 @@ window.EMERALD_CONFIG = window.EMERALD_CONFIG || Object.freeze({
   AUTO_CONNECT_LOCALHOST: true
 });
 </script>
-<script src="./config.js?v=20260730b"></script>
-<script src="./i18n.js?v=20260730b"></script>
-<script src="./app.js?v=20260730b"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="./config.js?v=20260730c"></script>
+<script src="./i18n.js?v=20260730c"></script>
+<script src="./app.js?v=20260730c"></script>
 
 </body>
 </html>

@@ -1349,13 +1349,12 @@ function bindEvents() {
     [t("average_leave_days_csv"), 1.8]
   ]);
   $("downloadTemplate").onclick = () => downloadCSV("employee_import_template.csv", [
-    [t("employee_id"), t("name_label"), t("department"), t("annual_leave_balance")],
-    ["E001", "Wang", t("production"), 12]
+    [t("employee_id"), t("name_label"), t("role"), t("department"), t("rotation"), t("initial_password")],
+    ["E101", "Somchai", "employee", t("production"), "A", ""],
+    ["E102", "Malee", "manager", t("production"), "B", ""]
   ]);
-  $("fakeImport").onclick = () => {
-    $("excelMessage").textContent = $("excelFile").files.length ? t("import_ready") : t("select_file");
-    addAudit("excel_import_action");
-  };
+  $("fakeImport").onclick = () => parseExcelFile();
+  $("confirmExcelImport").onclick = () => confirmExcelImport();
   $("aiSend").onclick = sendAI;
   $("aiClear").onclick = clearAIChat;
   $("resetOnboarding").onclick = resetOnboarding;
@@ -1794,6 +1793,147 @@ function downloadCSV(filename, rows) {
   anchor.click();
   URL.revokeObjectURL(anchor.href);
   addAudit("export_action", filename);
+}
+
+let excelParsedRows = [];
+const EXCEL_VALID_ROLES = ["employee", "manager", "hr", "admin"];
+const EXCEL_VALID_ROTATIONS = ["A", "B", "NONE"];
+
+function parseCsvText(text) {
+  return text.split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(Boolean)
+    .map(line => line.split(",").map(cell => cell.replace(/^"|"$/g, "").trim()));
+}
+
+function normalizeEmployeeRow(cells) {
+  const [id, name, role, department, rotation, password] = cells;
+  const normalizedRole = (role || "").trim().toLowerCase();
+  const normalizedRotation = (rotation || "").trim().toUpperCase();
+  return {
+    id: (id || "").trim().toUpperCase(),
+    name: (name || "").trim(),
+    role: EXCEL_VALID_ROLES.includes(normalizedRole) ? normalizedRole : "employee",
+    department: (department || "").trim() || "General",
+    rotation_group: EXCEL_VALID_ROTATIONS.includes(normalizedRotation) ? normalizedRotation : "NONE",
+    password: (password || "").trim() || crypto.randomUUID().replace(/-/g, "").slice(0, 12)
+  };
+}
+
+function readEmployeeFileRows(file) {
+  return new Promise((resolve, reject) => {
+    const isCsv = /\.csv$/i.test(file.name);
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error(t("select_file")));
+    reader.onload = () => {
+      try {
+        if (isCsv) {
+          resolve(parseCsvText(String(reader.result)));
+        } else if (window.XLSX) {
+          const workbook = XLSX.read(reader.result, { type: "binary" });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          resolve(XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: "" }));
+        } else {
+          reject(new Error(t("excel_library_unavailable")));
+        }
+      } catch (error) {
+        reject(error);
+      }
+    };
+    if (isCsv) reader.readAsText(file, "utf-8");
+    else reader.readAsBinaryString(file);
+  });
+}
+
+function renderExcelPreview(rows) {
+  $("excelPreviewBody").innerHTML = rows.map(row => "<tr>" +
+    `<td>${escapeHtml(row.id)}</td>` +
+    `<td>${escapeHtml(row.name)}</td>` +
+    `<td>${escapeHtml(row.role)}</td>` +
+    `<td>${escapeHtml(row.department)}</td>` +
+    `<td>${escapeHtml(row.rotation_group)}</td>` +
+    "</tr>"
+  ).join("");
+}
+
+async function parseExcelFile() {
+  const file = $("excelFile").files[0];
+  if (!file) {
+    $("excelMessage").textContent = t("select_file");
+    return;
+  }
+
+  try {
+    const rows = await readEmployeeFileRows(file);
+    const dataRows = rows.slice(1).filter(row => row.some(cell => String(cell || "").trim()));
+    excelParsedRows = dataRows.map(normalizeEmployeeRow).filter(row => row.id && row.name);
+
+    if (!excelParsedRows.length) {
+      $("excelMessage").textContent = t("no_data");
+      $("excelPreviewWrap").classList.add("hidden");
+      $("confirmExcelImport").classList.add("hidden");
+      return;
+    }
+
+    renderExcelPreview(excelParsedRows);
+    $("excelPreviewWrap").classList.remove("hidden");
+    $("confirmExcelImport").classList.remove("hidden");
+    $("excelMessage").textContent = t("excel_parse_success", { count: excelParsedRows.length });
+  } catch (error) {
+    console.error("Failed to parse employee import file.", error);
+    $("excelMessage").textContent = `${t("excel_parse_error")} ${error.message || ""}`;
+  }
+}
+
+async function confirmExcelImport() {
+  if (!excelParsedRows.length) return;
+  if (!CONFIG.API_BASE_URL || !apiToken) {
+    $("excelMessage").textContent = t("backend_unavailable");
+    return;
+  }
+
+  $("confirmExcelImport").disabled = true;
+  let created = 0;
+  let skipped = 0;
+  let failed = 0;
+  const generatedPasswords = [];
+
+  for (const row of excelParsedRows) {
+    $("excelMessage").textContent = `${t("importing")} (${created + skipped + failed + 1} / ${excelParsedRows.length})`;
+    try {
+      const response = await fetch(apiUrl("/api/admin/users"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiToken}` },
+        body: JSON.stringify({
+          id: row.id, name: row.name, role: row.role,
+          department: row.department, rotation_group: row.rotation_group,
+          password: row.password
+        })
+      });
+      if (response.status === 409) {
+        skipped += 1;
+      } else if (response.ok) {
+        created += 1;
+        generatedPasswords.push(`${row.id}: ${row.password}`);
+      } else {
+        failed += 1;
+      }
+    } catch {
+      failed += 1;
+    }
+  }
+
+  addAudit("excel_import_action");
+  $("excelMessage").textContent = t("excel_import_summary", { created, skipped, failed });
+  $("confirmExcelImport").disabled = false;
+  $("confirmExcelImport").classList.add("hidden");
+  $("excelPreviewWrap").classList.add("hidden");
+  excelParsedRows = [];
+  $("excelFile").value = "";
+
+  if (generatedPasswords.length) {
+    alert(`${t("excel_import_passwords_title")}\n\n${generatedPasswords.join("\n")}\n\n${t("excel_import_passwords_note")}`);
+  }
 }
 
 function renderBars() {
