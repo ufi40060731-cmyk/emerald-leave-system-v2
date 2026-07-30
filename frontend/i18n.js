@@ -1,5 +1,6 @@
 window.EMERALD_I18N = Object.freeze({
   "zh-TW": {
+    "calendar_no_holiday_data": "此年度的假日資料尚未初始化，顯示的日曆可能不含國定假日（HR/管理員登入時會自動嘗試初始化）。",
     "excel_import_type": "匯入類型",
     "excel_import_type_employees": "員工名單",
     "excel_import_type_attendance": "出勤紀錄（打卡資料）",
@@ -108,6 +109,8 @@ window.EMERALD_I18N = Object.freeze({
     "today": "今天",
     "previous_month": "上個月",
     "next_month": "下個月",
+    "previous_year": "上一年",
+    "next_year": "下一年",
     "calendar_hint": "點選日期查看假日與請假狀態",
     "ai_reply": "依目前示範資料，你還有 12 天特休；送出後將依序由主管與 HR 審核。",
     "ai_placeholder": "例如：病假需要醫療證明嗎？",
@@ -443,6 +446,7 @@ window.EMERALD_I18N = Object.freeze({
     "translation_missing_text": "此內容尚未提供目前語言的翻譯"
   },
   "en": {
+    "calendar_no_holiday_data": "Holiday data for this year hasn't been initialized yet, so the calendar may not show public holidays (HR/Admin logins auto-attempt initialization).",
     "excel_import_type": "Import type",
     "excel_import_type_employees": "Employee list",
     "excel_import_type_attendance": "Attendance records (clock in/out)",
@@ -551,6 +555,8 @@ window.EMERALD_I18N = Object.freeze({
     "today": "Today",
     "previous_month": "Previous month",
     "next_month": "Next month",
+    "previous_year": "Previous year",
+    "next_year": "Next year",
     "calendar_hint": "Select a date to view holidays and leave status",
     "ai_reply": "Based on the demo data, you have 12 annual leave days remaining. Your manager and HR will review a submitted request.",
     "ai_placeholder": "Example: Is a medical certificate required for sick leave?",
@@ -886,6 +892,7 @@ window.EMERALD_I18N = Object.freeze({
     "translation_missing_text": "This content has not been translated into the selected language yet"
   },
   "th": {
+    "calendar_no_holiday_data": "ยังไม่มีการตั้งค่าข้อมูลวันหยุดสำหรับปีนี้ ปฏิทินอาจไม่แสดงวันหยุดราชการ (ผู้ใช้ hr/admin จะพยายามตั้งค่าโดยอัตโนมัติ)",
     "excel_import_type": "ประเภทการนำเข้า",
     "excel_import_type_employees": "รายชื่อพนักงาน",
     "excel_import_type_attendance": "บันทึกเวลาเข้างาน",
@@ -994,6 +1001,8 @@ window.EMERALD_I18N = Object.freeze({
     "today": "วันนี้",
     "previous_month": "เดือนก่อนหน้า",
     "next_month": "เดือนถัดไป",
+    "previous_year": "ปีก่อนหน้า",
+    "next_year": "ปีถัดไป",
     "calendar_hint": "เลือกวันที่เพื่อดูวันหยุดและสถานะการลา",
     "ai_reply": "ตามข้อมูลทดลอง คุณมีวันลาพักร้อนคงเหลือ 12 วัน และคำขอจะได้รับการตรวจสอบโดยหัวหน้าและฝ่ายบุคคล",
     "ai_placeholder": "ตัวอย่าง: การลาป่วยต้องใช้ใบรับรองแพทย์หรือไม่?",

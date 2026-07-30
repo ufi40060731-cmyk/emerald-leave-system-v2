@@ -1465,8 +1465,10 @@ function bindEvents() {
     };
   });
   $("syncHoliday").onclick = syncHolidays;
+  $("prevYear").onclick = () => changeCalendarYear(-1);
   $("prevMonth").onclick = () => changeCalendarMonth(-1);
   $("nextMonth").onclick = () => changeCalendarMonth(1);
+  $("nextYear").onclick = () => changeCalendarYear(1);
   $("todayMonth").onclick = goToCurrentMonth;
   $("saveSettings").onclick = () => {
     $("settingsMessage").textContent = t("saved");
@@ -1929,9 +1931,17 @@ function addAudit(action, detail = "") {
   renderAudit();
 }
 
+function gregorianLocale() {
+  // "th" locale defaults to the Buddhist Era calendar (year + 543) in
+  // toLocaleDateString/toLocaleString. The whole app otherwise shows Gregorian
+  // years everywhere (backend dates, holiday sync, etc.), so force Gregorian
+  // here too to avoid inconsistent years like 2569 next to 2026.
+  return lang === "th" ? "th-TH-u-ca-gregory" : lang;
+}
+
 function formatAuditTime(value) {
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? String(value || "") : date.toLocaleString(lang);
+  return Number.isNaN(date.getTime()) ? String(value || "") : date.toLocaleString(gregorianLocale());
 }
 
 function renderAudit() {
@@ -2415,7 +2425,7 @@ function getHolidayNotifications() {
       const days = Math.round((date.getTime() - today.getTime()) / 86400000);
       if (days < 0 || days > HOLIDAY_NOTIFICATION_WINDOW_DAYS) return null;
       const name = displayHolidayName(item);
-      const formattedDate = date.toLocaleDateString(lang, { year: "numeric", month: "long", day: "numeric", weekday: "short" });
+      const formattedDate = date.toLocaleDateString(gregorianLocale(), { year: "numeric", month: "long", day: "numeric", weekday: "short" });
       let message;
       if (days === 0) message = t("holiday_today", { name });
       else if (days === 1) message = t("holiday_tomorrow", { name });
@@ -2514,7 +2524,7 @@ function renderHolidaySyncStatus(loadedFrom) {
   if (!element) return;
   if (loadedFrom === "github") {
     const updated = holidayDataMeta.updated_at
-      ? new Date(holidayDataMeta.updated_at).toLocaleString(lang)
+      ? new Date(holidayDataMeta.updated_at).toLocaleString(gregorianLocale())
       : "";
     const version = updated ? t("data_version", { value: updated }) : "";
     element.textContent = t("github_sync_status", { version });
@@ -2541,7 +2551,7 @@ async function renderBackendSyncStatus(element) {
       return;
     }
     const last = status.last_finished_at
-      ? t("last_sync", { value: new Date(status.last_finished_at).toLocaleString(lang) })
+      ? t("last_sync", { value: new Date(status.last_finished_at).toLocaleString(gregorianLocale()) })
       : "";
     element.textContent = t("api_sync_status", { time: status.daily_time, last });
   } catch (error) {
@@ -2571,7 +2581,7 @@ function renderNextHoliday() {
     return;
   }
   const date = new Date(`${holidayDate(next)}T00:00:00`);
-  $("nextHolidayDate").textContent = date.toLocaleDateString(lang, { day: "2-digit", month: "short" }).toUpperCase();
+  $("nextHolidayDate").textContent = date.toLocaleDateString(gregorianLocale(), { day: "2-digit", month: "short" }).toUpperCase();
   $("nextHolidayName").textContent = `${displayHolidayName(next)} · ${t("thailand")}`;
 }
 
@@ -2590,7 +2600,11 @@ function renderCalendar() {
   if (!$("calendarGrid") || !$("calendarTitle")) return;
   const year = calendarCursor.getFullYear();
   const month = calendarCursor.getMonth();
-  $("calendarTitle").textContent = calendarCursor.toLocaleDateString(lang, { year: "numeric", month: "long" });
+  $("calendarTitle").textContent = calendarCursor.toLocaleDateString(gregorianLocale(), { year: "numeric", month: "long" });
+  if ($("calendarNote")) {
+    $("calendarNote").textContent = holidays.length ? "" : t("calendar_no_holiday_data");
+    $("calendarNote").classList.toggle("hidden", holidays.length > 0);
+  }
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const previousMonthDays = new Date(year, month, 0).getDate();
@@ -2628,12 +2642,38 @@ function renderCalendar() {
   }
 }
 
+async function ensureHolidayYearHasData(year) {
+  if (holidays.length || !CONFIG.API_BASE_URL || !apiToken) return;
+  if (current?.role !== "hr" && current?.role !== "admin") return;
+
+  try {
+    const response = await fetch(apiUrl(`/api/holidays/initialize/${year}`), {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiToken}` }
+    });
+    if (response.ok) {
+      await loadHolidays(year);
+    }
+  } catch (error) {
+    console.info(`Could not auto-initialize holiday data for ${year}.`, error);
+  }
+}
+
+async function changeCalendarYear(offset) {
+  calendarCursor.setDate(1);
+  calendarCursor.setFullYear(calendarCursor.getFullYear() + offset);
+  await loadHolidays(calendarCursor.getFullYear());
+  await ensureHolidayYearHasData(calendarCursor.getFullYear());
+  renderCalendar();
+}
+
 async function changeCalendarMonth(offset) {
   const previousYear = calendarCursor.getFullYear();
   calendarCursor.setDate(1);
   calendarCursor.setMonth(calendarCursor.getMonth() + offset);
   if (calendarCursor.getFullYear() !== previousYear) {
     await loadHolidays(calendarCursor.getFullYear());
+    await ensureHolidayYearHasData(calendarCursor.getFullYear());
   }
   renderCalendar();
 }
@@ -2713,7 +2753,7 @@ function renderRotationPage() {
     if ($(id)) $(id).disabled = !canEdit;
   });
   $("rotationRows").innerHTML = upcomingSaturdayRows().map(item =>
-    `<tr><td>${escapeHtml(item.date.toLocaleDateString(lang))}</td>` +
+    `<tr><td>${escapeHtml(item.date.toLocaleDateString(gregorianLocale()))}</td>` +
     `<td>${escapeHtml(item.workingGroup || "—")}</td>` +
     `<td><span class="badge ${item.isWorkday ? "approved" : "pending"}">${escapeHtml(t(item.isWorkday ? "scheduled_workday" : "scheduled_day_off"))}</span></td>` +
     `<td>${escapeHtml(item.note || t(item.category))}</td></tr>`
@@ -2963,7 +3003,7 @@ function demoChatReply(query) {
     while (date.getDay() !== 6) date.setDate(date.getDate() + 1);
     if (includesAny(["下週", "下周", "next saturday", "เสาร์หน้า"])) date.setDate(date.getDate() + 7);
     const result = classifyDemoDate(date);
-    const dateText = date.toLocaleDateString(replyLang === "zh-TW" ? "zh-TW" : replyLang);
+    const dateText = date.toLocaleDateString(replyLang === "th" ? "th-TH-u-ca-gregory" : replyLang);
     return replyLang === "en"
       ? `${dateText}: your group is ${currentRotationGroup()}, and the working group is ${result.workingGroup || "—"}. You ${result.isWorkday ? "are scheduled to work" : "are off under the rotation schedule"}.`
       : replyLang === "th"
