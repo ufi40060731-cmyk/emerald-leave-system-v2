@@ -328,6 +328,27 @@ API 文件：http://localhost:8080/api/docs
 5. 之後只要 `git push` 到 `main`，Railway 會自動重新建置部署（`railway.json`
    已經設定好用根目錄 `Dockerfile` 建置、監聽 Railway 指派的 `$PORT`）
 
+## 之後如何更新程式碼（推上 GitHub、Railway 自動重新部署）
+
+目前 repo 是 https://github.com/ufi40060731-cmyk/emerald-leave-system-v2 ，
+最簡單的方式是用 **GitHub Desktop**：
+
+1. 打開 GitHub Desktop → `File → Clone repository` → 貼上面那個網址 clone
+   到電腦（如果已經 clone 過，跳過這步）
+2. 修改想改的檔案（`frontend/`、`backend/app/main.py`…）
+3. 回到 GitHub Desktop，左下角會列出所有變更的檔案，填一行 commit 訊息 →
+   `Commit to main`
+4. 右上角 `Push origin`
+
+**推上去之後，Railway 會自動偵測到新的 commit、自動重新建置部署**（通常
+30–60 秒內完成），不需要手動去 Railway 網頁按任何按鈕。可以到 Railway
+專案 → 對應服務 → `Deployments` 分頁確認最新一筆是不是顯示綠色的
+`SUCCESS`。
+
+如果不想用 GitHub Desktop，直接在 github.com 網頁上編輯檔案、或用
+`git` 指令列（`git add` / `git commit` / `git push`）效果都一樣，
+關鍵只有一點：**要推到 `main` 分支，Railway 才會抓到**。
+
 ---
 
 ## 免費替代方案（如果不想付費用 Railway）
@@ -421,6 +442,30 @@ GET /api/openapi.json
 ```
 
 出勤匯入範本：`data_templates/attendance_import_template.csv`
+
+---
+
+## 目前這個部署還沒處理的維運事項
+
+跟上面「正式上線前檢查清單」不同，這幾項是**這個 Railway 專案目前真實
+的待辦狀態**（寫這份文件當下還沒處理）：
+
+- [ ] **Railway 試用額度**：專案畫面右上角會顯示「30 days or $X.XX left」，
+      是免費試用額度，用完或到期後服務會被停用。因為目前系統用量非常低
+      （CPU/記憶體幾乎閒置），實際燒錢速度可能遠低於預期，但還是建議定期
+      去 Railway 網頁確認剩餘額度，快用完前決定要不要升級成付費方案。
+- [ ] **刪除沒用到的服務**：Railway 專案裡還留著兩個沒用的服務——
+      `Postgres`（一開始誤建的，整個專案沒用到 PostgreSQL）跟
+      `emerald-backend`（早期接錯 GitHub repo、從未真正部署成功的服務），
+      建議清掉避免白白計費/佔用資源。
+- [ ] **撤銷已使用過的 GitHub Personal Access Token**：部署過程中用過的
+      臨時 token，建議去 github.com/settings/personal-access-tokens 找到
+      並刪除，讓它徹底失效。
+- [ ] **MySQL 自動備份**：Railway 的 MySQL 服務預設沒有開啟自動備份，
+      需要另外在 Volumes/Backups 分頁設定（可能需要升級付費方案才能用）。
+- [ ] **OpenAI 用量上限**：程式碼層面已經有每小時 30 次的保護（見上方
+      「詢問 AI」章節），但 OpenAI 帳號本身的 Monthly budget 還沒設定，
+      建議去 https://platform.openai.com/settings/organization/limits 設定。
 
 ---
 
