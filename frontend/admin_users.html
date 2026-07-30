@@ -308,6 +308,7 @@
           <table>
             <thead>
               <tr>
+                <th>照片</th>
                 <th>員工編號</th>
                 <th>姓名</th>
                 <th>角色</th>
@@ -337,6 +338,7 @@
 
     const loginForm = document.getElementById("loginForm");
     const createUserForm = document.getElementById("createUserForm");
+    let currentRole = "";
 
     const loginStatus = document.getElementById("loginStatus");
     const createStatus = document.getElementById("createStatus");
@@ -418,6 +420,7 @@
       sessionPanel.classList.add("hidden");
       currentUser.textContent = "";
       userTableBody.innerHTML = "";
+      currentRole = "";
     }
 
     function showLoggedIn(user) {
@@ -425,6 +428,8 @@
       adminArea.classList.remove("hidden");
       sessionPanel.classList.remove("hidden");
       currentUser.textContent = `${user.id}｜${user.name}｜${user.role}`;
+      currentRole = user.role;
+      createUserForm.closest(".card").classList.toggle("hidden", currentRole !== "admin");
     }
 
     function renderUsers(users) {
@@ -432,6 +437,33 @@
 
       for (const user of users) {
         const row = document.createElement("tr");
+
+        const photoCell = document.createElement("td");
+        const photoWrap = document.createElement("div");
+        photoWrap.style.display = "flex";
+        photoWrap.style.alignItems = "center";
+        photoWrap.style.gap = "8px";
+        if (user.photo_data) {
+          const img = document.createElement("img");
+          img.src = user.photo_data;
+          img.alt = user.name;
+          img.style.cssText = "width:40px;height:40px;border-radius:50%;object-fit:cover;border:1px solid #e2e8f0;";
+          photoWrap.appendChild(img);
+        } else {
+          const placeholder = document.createElement("div");
+          placeholder.textContent = (user.name || "?").slice(0, 1);
+          placeholder.style.cssText = "width:40px;height:40px;border-radius:50%;background:#e2e8f0;color:#475569;display:flex;align-items:center;justify-content:center;font-weight:700;";
+          photoWrap.appendChild(placeholder);
+        }
+        const photoButton = document.createElement("button");
+        photoButton.type = "button";
+        photoButton.className = "secondary small";
+        photoButton.textContent = "更新照片";
+        photoButton.addEventListener("click", () => uploadPhoto(user.id));
+        photoWrap.appendChild(photoButton);
+        photoCell.appendChild(photoWrap);
+        row.appendChild(photoCell);
+
         const values = [
           user.id,
           user.name,
@@ -468,19 +500,21 @@
         const actionsWrap = document.createElement("div");
         actionsWrap.className = "row-actions";
 
-        const resetButton = document.createElement("button");
-        resetButton.type = "button";
-        resetButton.className = "secondary small";
-        resetButton.textContent = "重設密碼";
-        resetButton.addEventListener("click", () => resetPassword(user.id));
-        actionsWrap.appendChild(resetButton);
+        if (currentRole === "admin") {
+          const resetButton = document.createElement("button");
+          resetButton.type = "button";
+          resetButton.className = "secondary small";
+          resetButton.textContent = "重設密碼";
+          resetButton.addEventListener("click", () => resetPassword(user.id));
+          actionsWrap.appendChild(resetButton);
 
-        const toggleButton = document.createElement("button");
-        toggleButton.type = "button";
-        toggleButton.className = user.is_active ? "danger small" : "secondary small";
-        toggleButton.textContent = user.is_active ? "停用" : "啟用";
-        toggleButton.addEventListener("click", () => toggleUserStatus(user.id, !user.is_active));
-        actionsWrap.appendChild(toggleButton);
+          const toggleButton = document.createElement("button");
+          toggleButton.type = "button";
+          toggleButton.className = user.is_active ? "danger small" : "secondary small";
+          toggleButton.textContent = user.is_active ? "停用" : "啟用";
+          toggleButton.addEventListener("click", () => toggleUserStatus(user.id, !user.is_active));
+          actionsWrap.appendChild(toggleButton);
+        }
 
         actionsCell.appendChild(actionsWrap);
         row.appendChild(actionsCell);
@@ -489,8 +523,63 @@
       }
     }
 
-    async function toggleUserStatus(userId, makeActive) {
-      const confirmMessage = makeActive
+    function resizeImageFile(file, maxDimension = 200, quality = 0.7) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error("讀取檔案失敗"));
+        reader.onload = () => {
+          const img = new Image();
+          img.onerror = () => reject(new Error("圖片格式無法讀取"));
+          img.onload = () => {
+            const scale = Math.min(1, maxDimension / Math.max(img.width, img.height));
+            const width = Math.round(img.width * scale);
+            const height = Math.round(img.height * scale);
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL("image/jpeg", quality));
+          };
+          img.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function uploadPhoto(userId) {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "image/*";
+      input.onchange = async () => {
+        const file = input.files?.[0];
+        if (!file) return;
+
+        try {
+          setStatus(listStatus, `處理 ${userId} 的照片中…`);
+          const dataUri = await resizeImageFile(file);
+
+          const response = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/photo`, {
+            method: "PATCH",
+            body: JSON.stringify({ photo_data: dataUri })
+          });
+
+          const data = await readJsonSafely(response);
+
+          if (!response.ok) {
+            throw new Error(errorMessage(data, `照片更新失敗（${response.status}）`));
+          }
+
+          setStatus(listStatus, `${userId} 的照片已更新`, "ok");
+          await loadUsers();
+        } catch (error) {
+          setStatus(listStatus, error.message, "error");
+        }
+      };
+      input.click();
+    }
+
+    async function toggleUserStatus(userId, makeActive) {      const confirmMessage = makeActive
         ? `確定要重新啟用 ${userId} 嗎？`
         : `確定要停用 ${userId} 嗎？停用後這個帳號將無法登入，但歷史紀錄會保留。`;
 
@@ -561,8 +650,8 @@
         );
       }
 
-      if (data.role !== "admin") {
-        throw new Error("此頁面只允許管理員使用");
+      if (data.role !== "admin" && data.role !== "hr") {
+        throw new Error("此頁面只允許管理員或人資使用");
       }
 
       showLoggedIn(data);
@@ -629,8 +718,8 @@
           );
         }
 
-        if (data.user?.role !== "admin") {
-          throw new Error("此頁面只允許管理員登入");
+        if (data.user?.role !== "admin" && data.user?.role !== "hr") {
+          throw new Error("此頁面只允許管理員或人資登入");
         }
 
         setToken(data.access_token);

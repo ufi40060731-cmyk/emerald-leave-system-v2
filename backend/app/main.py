@@ -135,6 +135,7 @@ class User(Base):
     rotation_group: Mapped[str] = mapped_column(String(20), default="NONE")
     password_hash: Mapped[str] = mapped_column(String(255))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    photo_data: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 class LeaveRequest(Base):
@@ -353,6 +354,7 @@ class UserOut(BaseModel):
     department: str
     rotation_group: str
     is_active: bool
+    photo_data: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -1093,6 +1095,7 @@ def ensure_schema_compatibility() -> None:
             "department": "VARCHAR(80) DEFAULT 'General'",
             "rotation_group": "VARCHAR(20) DEFAULT 'NONE'",
             "is_active": "BOOLEAN DEFAULT 1",
+            "photo_data": "TEXT",
         },
         "leave_requests": {
             "workdays": "INTEGER DEFAULT 0",
@@ -1893,6 +1896,46 @@ def admin_set_user_status(
         "user",
         user.id,
         f"Account {'activated' if payload.is_active else 'deactivated'} by administrator {actor.id}",
+    )
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+class UserPhotoUpdate(BaseModel):
+    photo_data: str | None = Field(default=None, max_length=60000)
+
+
+@app.patch("/api/admin/users/{user_id}/photo", response_model=UserOut)
+def admin_set_user_photo(
+    user_id: str,
+    payload: UserPhotoUpdate,
+    actor: Annotated[User, Depends(require_roles(Role.hr, Role.admin))],
+    db: Annotated[Session, Depends(get_db)],
+) -> User:
+    target_id = user_id.strip().upper()
+    user = db.get(User, target_id)
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    if payload.photo_data and not payload.photo_data.startswith("data:image/"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="photo_data must be a data:image/... URI",
+        )
+
+    user.photo_data = payload.photo_data
+    log_enterprise_event(
+        db,
+        actor.id,
+        "user_photo_updated" if payload.photo_data else "user_photo_removed",
+        "user",
+        user.id,
+        f"Photo updated by {actor.id}",
     )
     db.commit()
     db.refresh(user)

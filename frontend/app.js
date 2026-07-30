@@ -175,6 +175,8 @@ const AUDIT_ALIASES = {
   admin_password_reset: "admin_password_reset_action",
   user_activated: "user_activated_action",
   user_deactivated: "user_deactivated_action",
+  user_photo_updated: "user_photo_updated_action",
+  user_photo_removed: "user_photo_removed_action",
   // Kept for older locally-generated demo audit entries (no backend equivalent).
   Login: "login_action",
   Logout: "logout_action",

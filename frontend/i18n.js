@@ -1,5 +1,7 @@
 window.EMERALD_I18N = Object.freeze({
   "zh-TW": {
+    "user_photo_updated_action": "更新員工照片",
+    "user_photo_removed_action": "移除員工照片",
     "work_rule_created_action": "新增工作規章",
     "work_rule_updated_action": "更新工作規章",
     "work_rule_deactivated_action": "刪除工作規章",
@@ -414,6 +416,8 @@ window.EMERALD_I18N = Object.freeze({
     "translation_missing_text": "此內容尚未提供目前語言的翻譯"
   },
   "en": {
+    "user_photo_updated_action": "Updated employee photo",
+    "user_photo_removed_action": "Removed employee photo",
     "work_rule_created_action": "Created work rule",
     "work_rule_updated_action": "Updated work rule",
     "work_rule_deactivated_action": "Deleted work rule",
@@ -828,6 +832,8 @@ window.EMERALD_I18N = Object.freeze({
     "translation_missing_text": "This content has not been translated into the selected language yet"
   },
   "th": {
+    "user_photo_updated_action": "อัปเดตรูปพนักงาน",
+    "user_photo_removed_action": "ลบรูปพนักงาน",
     "work_rule_created_action": "เพิ่มระเบียบข้อบังคับ",
     "work_rule_updated_action": "แก้ไขระเบียบข้อบังคับ",
     "work_rule_deactivated_action": "ลบระเบียบข้อบังคับ",
