@@ -134,6 +134,7 @@ class User(Base):
     department: Mapped[str] = mapped_column(String(80), default="General")
     rotation_group: Mapped[str] = mapped_column(String(20), default="NONE")
     password_hash: Mapped[str] = mapped_column(String(255))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
 class LeaveRequest(Base):
@@ -351,6 +352,7 @@ class UserOut(BaseModel):
     role: str
     department: str
     rotation_group: str
+    is_active: bool
 
     model_config = {"from_attributes": True}
 
@@ -729,6 +731,8 @@ def get_current_user(
     user = db.get(User, account)
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="This account has been deactivated")
     return user
 
 
@@ -1088,6 +1092,7 @@ def ensure_schema_compatibility() -> None:
         "users": {
             "department": "VARCHAR(80) DEFAULT 'General'",
             "rotation_group": "VARCHAR(20) DEFAULT 'NONE'",
+            "is_active": "BOOLEAN DEFAULT 1",
         },
         "leave_requests": {
             "workdays": "INTEGER DEFAULT 0",
@@ -1691,6 +1696,8 @@ def login(payload: LoginRequest, db: Annotated[Session, Depends(get_db)]) -> Tok
     if not user or not pwd_context.verify(payload.password, user.password_hash):
         _record_login_failure(account)
         raise HTTPException(status_code=401, detail="Invalid account or password")
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="This account has been deactivated")
     _clear_login_failures(account)
 
     return TokenResponse(
@@ -1701,6 +1708,7 @@ def login(payload: LoginRequest, db: Annotated[Session, Depends(get_db)]) -> Tok
             "role": user.role,
             "department": user.department,
             "rotation_group": user.rotation_group,
+            "is_active": user.is_active,
         },
     )
 
@@ -1851,6 +1859,46 @@ def admin_reset_user_password(
     }
 
 
+class UserStatusUpdate(BaseModel):
+    is_active: bool
+
+
+@app.patch("/api/admin/users/{user_id}/status", response_model=UserOut)
+def admin_set_user_status(
+    user_id: str,
+    payload: UserStatusUpdate,
+    actor: Annotated[User, Depends(require_roles(Role.admin))],
+    db: Annotated[Session, Depends(get_db)],
+) -> User:
+    target_id = user_id.strip().upper()
+    user = db.get(User, target_id)
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    if user.id == actor.id and not payload.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You cannot deactivate your own account",
+        )
+
+    user.is_active = payload.is_active
+    log_enterprise_event(
+        db,
+        actor.id,
+        "user_activated" if payload.is_active else "user_deactivated",
+        "user",
+        user.id,
+        f"Account {'activated' if payload.is_active else 'deactivated'} by administrator {actor.id}",
+    )
+    db.commit()
+    db.refresh(user)
+    return user
+
+
 
 
 
@@ -1997,7 +2045,7 @@ def reseed_work_rules(
 
 @app.get("/api/me")
 def me(user: Annotated[User, Depends(get_current_user)]) -> dict:
-    return {"id": user.id, "name": user.name, "role": user.role, "department": user.department, "rotation_group": user.rotation_group}
+    return {"id": user.id, "name": user.name, "role": user.role, "department": user.department, "rotation_group": user.rotation_group, "is_active": user.is_active}
 
 
 @app.get("/api/schedules/settings", response_model=RotationSettingsOut)

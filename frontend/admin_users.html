@@ -313,6 +313,7 @@
                 <th>角色</th>
                 <th>部門</th>
                 <th>輪班</th>
+                <th>狀態</th>
                 <th>操作</th>
               </tr>
             </thead>
@@ -454,16 +455,63 @@
           row.appendChild(cell);
         });
 
+        const statusCell = document.createElement("td");
+        const statusBadge = document.createElement("span");
+        statusBadge.className = "badge";
+        statusBadge.textContent = user.is_active ? "在職" : "已停用";
+        statusBadge.style.background = user.is_active ? "#dcfce7" : "#fee2e2";
+        statusBadge.style.color = user.is_active ? "#166534" : "#991b1b";
+        statusCell.appendChild(statusBadge);
+        row.appendChild(statusCell);
+
         const actionsCell = document.createElement("td");
+        const actionsWrap = document.createElement("div");
+        actionsWrap.className = "row-actions";
+
         const resetButton = document.createElement("button");
         resetButton.type = "button";
         resetButton.className = "secondary small";
         resetButton.textContent = "重設密碼";
         resetButton.addEventListener("click", () => resetPassword(user.id));
-        actionsCell.appendChild(resetButton);
+        actionsWrap.appendChild(resetButton);
+
+        const toggleButton = document.createElement("button");
+        toggleButton.type = "button";
+        toggleButton.className = user.is_active ? "danger small" : "secondary small";
+        toggleButton.textContent = user.is_active ? "停用" : "啟用";
+        toggleButton.addEventListener("click", () => toggleUserStatus(user.id, !user.is_active));
+        actionsWrap.appendChild(toggleButton);
+
+        actionsCell.appendChild(actionsWrap);
         row.appendChild(actionsCell);
 
         userTableBody.appendChild(row);
+      }
+    }
+
+    async function toggleUserStatus(userId, makeActive) {
+      const confirmMessage = makeActive
+        ? `確定要重新啟用 ${userId} 嗎？`
+        : `確定要停用 ${userId} 嗎？停用後這個帳號將無法登入，但歷史紀錄會保留。`;
+
+      if (!confirm(confirmMessage)) return;
+
+      try {
+        const response = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/status`, {
+          method: "PATCH",
+          body: JSON.stringify({ is_active: makeActive })
+        });
+
+        const data = await readJsonSafely(response);
+
+        if (!response.ok) {
+          throw new Error(errorMessage(data, `更新失敗（${response.status}）`));
+        }
+
+        setStatus(listStatus, `${userId} 已${makeActive ? "啟用" : "停用"}`, "ok");
+        await loadUsers();
+      } catch (error) {
+        setStatus(listStatus, error.message, "error");
       }
     }
 

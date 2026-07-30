@@ -1427,7 +1427,11 @@ async function login() {
         enterApp(data.user.id);
         return;
       }
-      if (response.status === 401 || response.status === 403) {
+      if (response.status === 403) {
+        $("loginError").textContent = t("account_deactivated");
+        return;
+      }
+      if (response.status === 401) {
         $("loginError").textContent = t("invalid_credentials");
         return;
       }
