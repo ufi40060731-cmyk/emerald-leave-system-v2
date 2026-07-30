@@ -316,6 +316,32 @@ class WorkRule(Base):
     )
 
 
+class OnboardingItem(Base):
+    __tablename__ = "onboarding_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    code: Mapped[str] = mapped_column(String(40), unique=True, index=True)
+    title_zh: Mapped[str] = mapped_column(String(300))
+    title_en: Mapped[str] = mapped_column(String(300), default="")
+    title_th: Mapped[str] = mapped_column(String(300), default="")
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, index=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+
+class OnboardingProgress(Base):
+    __tablename__ = "onboarding_progress"
+    __table_args__ = (UniqueConstraint("user_id", "item_id", name="uq_onboarding_progress_user_item"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(String(20), index=True)
+    item_id: Mapped[int] = mapped_column(Integer, index=True)
+    completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token")
 
@@ -396,6 +422,39 @@ class WorkRuleUpdate(BaseModel):
     content_zh: str | None = Field(default=None, min_length=1)
     sort_order: int | None = None
     active: bool | None = None
+
+
+class OnboardingItemOut(BaseModel):
+    id: int
+    code: str
+    title_zh: str
+    title_en: str
+    title_th: str
+    sort_order: int
+    active: bool
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class OnboardingItemCreate(BaseModel):
+    code: str = Field(min_length=1, max_length=40)
+    title_zh: str = Field(min_length=1, max_length=300)
+    title_en: str = Field(default="", max_length=300)
+    title_th: str = Field(default="", max_length=300)
+    sort_order: int = 0
+
+
+class OnboardingItemUpdate(BaseModel):
+    title_zh: str | None = Field(default=None, min_length=1, max_length=300)
+    title_en: str | None = Field(default=None, max_length=300)
+    title_th: str | None = Field(default=None, max_length=300)
+    sort_order: int | None = None
+    active: bool | None = None
+
+
+class OnboardingProgressUpdate(BaseModel):
+    completed: bool
 
 
 class LeaveCreate(BaseModel):
@@ -1113,6 +1172,28 @@ def ensure_schema_compatibility() -> None:
                     )
 
 
+ONBOARDING_ITEM_SEED = [
+    {"code": "COMPANY", "title_zh": "了解公司、廠區與主要產品", "title_en": "Learn the company, site, and main products", "title_th": "ทำความรู้จักบริษัท สถานที่ และผลิตภัณฑ์หลัก", "sort_order": 1},
+    {"code": "ATTENDANCE", "title_zh": "確認上下班、打卡、遲到與早退規定", "title_en": "Confirm work hours, clock-in, lateness, and early-leave rules", "title_th": "ยืนยันเวลางาน การลงเวลา การมาสาย และการกลับก่อนเวลา", "sort_order": 2},
+    {"code": "ROTATION", "title_zh": "確認自己的 A／B 組星期六輪班", "title_en": "Confirm your A/B Saturday rotation group", "title_th": "ยืนยันกลุ่มเวรวันเสาร์ A/B ของคุณ", "sort_order": 3},
+    {"code": "LEAVE", "title_zh": "閱讀請假種類、證明與審核流程", "title_en": "Read leave types, evidence, and approval workflow", "title_th": "อ่านประเภทการลา หลักฐาน และขั้นตอนอนุมัติ", "sort_order": 4},
+    {"code": "SAFETY", "title_zh": "完成工廠安全、PPE 與緊急通報說明", "title_en": "Complete factory safety, PPE, and emergency reporting guidance", "title_th": "เรียนรู้ความปลอดภัย PPE และการรายงานเหตุฉุกเฉิน", "sort_order": 5},
+    {"code": "QUALITY", "title_zh": "了解衛生、品質與生產區進出要求", "title_en": "Understand hygiene, quality, and production-area entry requirements", "title_th": "เข้าใจสุขอนามัย คุณภาพ และข้อกำหนดการเข้าพื้นที่ผลิต", "sort_order": 6},
+    {"code": "CONFIDENTIALITY", "title_zh": "了解保密、拍照、手機與公司資料規定", "title_en": "Understand confidentiality, photography, phones, and company-data rules", "title_th": "เข้าใจกฎความลับ การถ่ายภาพ โทรศัพท์ และข้อมูลบริษัท", "sort_order": 7},
+    {"code": "CONTACTS", "title_zh": "記下直屬主管、HR 與緊急聯絡方式", "title_en": "Record your manager, HR, and emergency contacts", "title_th": "บันทึกผู้บังคับบัญชา HR และผู้ติดต่อฉุกเฉิน", "sort_order": 8},
+]
+
+
+def seed_onboarding_items(db: Session) -> dict:
+    created = 0
+    for row in ONBOARDING_ITEM_SEED:
+        if db.scalar(select(OnboardingItem).where(OnboardingItem.code == row["code"])) is None:
+            db.add(OnboardingItem(**row))
+            created += 1
+    db.commit()
+    return {"created": created, "total": len(ONBOARDING_ITEM_SEED)}
+
+
 WORK_RULE_SEED = [
     {
         "code": "PURPOSE",
@@ -1549,6 +1630,7 @@ def seed_demo_data() -> None:
         db.commit()
         seed_enterprise_data(db)
         seed_work_rules(db)
+        seed_onboarding_items(db)
 
 
 app = FastAPI(
@@ -1986,6 +2068,127 @@ def admin_set_user_photo(
 
 
 
+
+
+@app.get("/api/onboarding/items", response_model=list[OnboardingItemOut])
+def list_onboarding_items(
+    _: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> list[OnboardingItem]:
+    stmt = (
+        select(OnboardingItem)
+        .where(OnboardingItem.active.is_(True))
+        .order_by(OnboardingItem.sort_order, OnboardingItem.code)
+    )
+    return list(db.scalars(stmt))
+
+
+@app.get("/api/onboarding/progress")
+def get_onboarding_progress(
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> dict:
+    rows = db.scalars(
+        select(OnboardingProgress).where(OnboardingProgress.user_id == user.id)
+    )
+    return {row.item_id: row.completed for row in rows}
+
+
+@app.post("/api/onboarding/progress/{item_id}")
+def set_onboarding_progress(
+    item_id: int,
+    payload: OnboardingProgressUpdate,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> dict:
+    item = db.get(OnboardingItem, item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Onboarding item not found")
+
+    row = db.scalar(
+        select(OnboardingProgress).where(
+            OnboardingProgress.user_id == user.id,
+            OnboardingProgress.item_id == item_id,
+        )
+    )
+    if not row:
+        row = OnboardingProgress(user_id=user.id, item_id=item_id, completed=False)
+        db.add(row)
+
+    row.completed = payload.completed
+    row.completed_at = datetime.now(timezone.utc) if payload.completed else None
+    db.commit()
+    return {"item_id": item_id, "completed": row.completed}
+
+
+@app.get("/api/admin/onboarding-items", response_model=list[OnboardingItemOut])
+def admin_list_onboarding_items(
+    _: Annotated[User, Depends(require_roles(Role.hr, Role.admin))],
+    db: Annotated[Session, Depends(get_db)],
+) -> list[OnboardingItem]:
+    stmt = select(OnboardingItem).order_by(OnboardingItem.sort_order, OnboardingItem.code)
+    return list(db.scalars(stmt))
+
+
+@app.post("/api/admin/onboarding-items", response_model=OnboardingItemOut, status_code=201)
+def create_onboarding_item(
+    payload: OnboardingItemCreate,
+    actor: Annotated[User, Depends(require_roles(Role.hr, Role.admin))],
+    db: Annotated[Session, Depends(get_db)],
+) -> OnboardingItem:
+    code = payload.code.strip().upper()
+    if db.scalar(select(OnboardingItem).where(OnboardingItem.code == code)):
+        raise HTTPException(status_code=409, detail="Onboarding item code already exists")
+
+    item = OnboardingItem(
+        code=code,
+        title_zh=payload.title_zh.strip(),
+        title_en=payload.title_en.strip(),
+        title_th=payload.title_th.strip(),
+        sort_order=payload.sort_order,
+    )
+    db.add(item)
+    log_enterprise_event(db, actor.id, "onboarding_item_created", "onboarding_item", code, "")
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+@app.put("/api/admin/onboarding-items/{item_id}", response_model=OnboardingItemOut)
+def update_onboarding_item(
+    item_id: int,
+    payload: OnboardingItemUpdate,
+    actor: Annotated[User, Depends(require_roles(Role.hr, Role.admin))],
+    db: Annotated[Session, Depends(get_db)],
+) -> OnboardingItem:
+    item = db.get(OnboardingItem, item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Onboarding item not found")
+
+    for field in ("title_zh", "title_en", "title_th", "sort_order", "active"):
+        value = getattr(payload, field)
+        if value is not None:
+            setattr(item, field, value.strip() if isinstance(value, str) else value)
+    item.updated_at = datetime.now(timezone.utc)
+    log_enterprise_event(db, actor.id, "onboarding_item_updated", "onboarding_item", item.code, "")
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+@app.delete("/api/admin/onboarding-items/{item_id}")
+def delete_onboarding_item(
+    item_id: int,
+    actor: Annotated[User, Depends(require_roles(Role.hr, Role.admin))],
+    db: Annotated[Session, Depends(get_db)],
+) -> dict:
+    item = db.get(OnboardingItem, item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Onboarding item not found")
+    item.active = False
+    log_enterprise_event(db, actor.id, "onboarding_item_deleted", "onboarding_item", item.code, "")
+    db.commit()
+    return {"message": "Onboarding item deactivated", "code": item.code}
 
 
 @app.get("/api/work-rules", response_model=list[WorkRuleOut])

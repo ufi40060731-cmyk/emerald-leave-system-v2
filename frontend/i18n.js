@@ -1,5 +1,11 @@
 window.EMERALD_I18N = Object.freeze({
   "zh-TW": {
+    "onboarding_item_created_action": "新增新人必讀項目",
+    "onboarding_item_updated_action": "更新新人必讀項目",
+    "onboarding_item_deleted_action": "刪除新人必讀項目",
+    "inactive_label": "已停用",
+    "content_reset_not_available_online": "已連接後端資料庫時無法一鍵還原預設值，請改用編輯/刪除個別調整，或聯絡工程師手動處理。",
+    "onboarding_item_code_placeholder": "代碼（例如 SAFETY-02，只在新增時需要填）",
     "year_display": "年份顯示方式",
     "year_display_gregorian": "只顯示西元年",
     "year_display_buddhist": "只顯示佛曆年",
@@ -450,6 +456,12 @@ window.EMERALD_I18N = Object.freeze({
     "translation_missing_text": "此內容尚未提供目前語言的翻譯"
   },
   "en": {
+    "onboarding_item_created_action": "Created onboarding item",
+    "onboarding_item_updated_action": "Updated onboarding item",
+    "onboarding_item_deleted_action": "Deleted onboarding item",
+    "inactive_label": "Inactive",
+    "content_reset_not_available_online": "Restoring defaults in one click isn't available while connected to the backend database. Edit or delete items individually instead, or ask an engineer to help.",
+    "onboarding_item_code_placeholder": "Code (e.g. SAFETY-02, only needed when adding a new item)",
     "year_display": "Year display",
     "year_display_gregorian": "Gregorian year only",
     "year_display_buddhist": "Buddhist Era year only",
@@ -900,6 +912,12 @@ window.EMERALD_I18N = Object.freeze({
     "translation_missing_text": "This content has not been translated into the selected language yet"
   },
   "th": {
+    "onboarding_item_created_action": "เพิ่มรายการปฐมนิเทศ",
+    "onboarding_item_updated_action": "แก้ไขรายการปฐมนิเทศ",
+    "onboarding_item_deleted_action": "ลบรายการปฐมนิเทศ",
+    "inactive_label": "ปิดใช้งาน",
+    "content_reset_not_available_online": "ไม่สามารถคืนค่าเริ่มต้นได้ในคลิกเดียวขณะเชื่อมต่อฐานข้อมูลหลังบ้าน กรุณาแก้ไข/ลบทีละรายการแทน หรือขอความช่วยเหลือจากวิศวกร",
+    "onboarding_item_code_placeholder": "รหัส (เช่น SAFETY-02 ใช้เฉพาะตอนเพิ่มรายการใหม่)",
     "year_display": "รูปแบบการแสดงปี",
     "year_display_gregorian": "แสดงเฉพาะปี ค.ศ.",
     "year_display_buddhist": "แสดงเฉพาะปี พ.ศ.",

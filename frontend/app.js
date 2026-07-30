@@ -169,6 +169,9 @@ const AUDIT_ALIASES = {
   sop_created: "sop_created_action",
   sop_updated: "sop_updated_action",
   sop_deleted: "sop_deleted_action",
+  onboarding_item_created: "onboarding_item_created_action",
+  onboarding_item_updated: "onboarding_item_updated_action",
+  onboarding_item_deleted: "onboarding_item_deleted_action",
   attendance_import: "excel_import_action",
   attendance_correction_requested: "attendance_correction_action",
   attendance_correction_approved: "approve_leave_action",
@@ -383,6 +386,12 @@ async function readJsonSafely(response) {
   } catch {
     return {};
   }
+}
+
+function errorMessageFrom(data, fallback) {
+  if (typeof data?.detail === "string") return data.detail;
+  if (Array.isArray(data?.detail)) return data.detail.map(item => item.msg || JSON.stringify(item)).join("\n");
+  return fallback;
 }
 
 function localIsoDate(date) {
@@ -637,7 +646,7 @@ function toggleManagerPanel(panelId, buttonId) {
   button.textContent = panel.classList.contains("hidden") ? t("content_manage") : t("content_close");
 }
 
-function renderOnboardingManager(config = loadContentConfig()) {
+async function renderOnboardingManager() {
   const button = $("toggleOnboardingManager");
   const panel = $("onboardingManager");
   const list = $("onboardingManagerList");
@@ -651,17 +660,39 @@ function renderOnboardingManager(config = loadContentConfig()) {
     panel.classList.add("hidden");
     return;
   }
-  list.innerHTML = config.onboardingItems.map((item, index) =>
-    `<div class="manager-row"><span class="manager-index">${index + 1}</span>` +
+
+  let items = onboardingItemsCache || [];
+  if (CONFIG.API_BASE_URL && apiToken) {
+    try {
+      const response = await fetch(apiUrl("/api/admin/onboarding-items"), {
+        headers: { Authorization: `Bearer ${apiToken}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        items = data.map(item => ({
+          id: item.id, code: item.code, active: item.active,
+          texts: { "zh-TW": item.title_zh, en: item.title_en, th: item.title_th }
+        }));
+      }
+    } catch (error) {
+      console.info("Could not load onboarding items for admin panel.", error);
+    }
+  }
+
+  list.innerHTML = items.map((item, index) =>
+    `<div class="manager-row">` +
+    `<span class="manager-index">${index + 1}${item.active === false ? ` (${escapeHtml(t("inactive_label"))})` : ""}</span>` +
     `<span class="manager-text">${escapeHtml(managedText(item))}<small>${escapeHtml(managedTranslationStatus(item))}</small></span>` +
-    `<div class="manager-actions"><button type="button" class="soft" data-onboarding-edit="${escapeHtml(item.id)}">${escapeHtml(t("content_edit"))}</button>` +
-    `<button type="button" class="ghost danger" data-onboarding-delete="${escapeHtml(item.id)}">${escapeHtml(t("content_delete"))}</button></div></div>`
+    `<div class="manager-actions"><button type="button" class="soft" data-onboarding-edit="${escapeHtml(String(item.id))}">${escapeHtml(t("content_edit"))}</button>` +
+    `<button type="button" class="ghost danger" data-onboarding-delete="${escapeHtml(String(item.id))}">${escapeHtml(t("content_delete"))}</button></div></div>`
   ).join("");
   list.querySelectorAll("[data-onboarding-edit]").forEach(buttonElement => {
     buttonElement.onclick = () => {
-      const item = config.onboardingItems.find(entry => entry.id === buttonElement.dataset.onboardingEdit);
+      const id = CONFIG.API_BASE_URL && apiToken ? Number(buttonElement.dataset.onboardingEdit) : buttonElement.dataset.onboardingEdit;
+      const item = items.find(entry => entry.id === id);
       if (!item) return;
-      $("onboardingEditId").value = item.id;
+      $("onboardingEditId").value = String(item.id);
+      $("onboardingEditCode").value = item.code || "";
       fillManagedTranslationFields("onboardingItemText", item);
       $("onboardingItemTextZh")?.focus();
       setContentManagerMessage("onboardingManagerMessage", "");
@@ -674,10 +705,11 @@ function renderOnboardingManager(config = loadContentConfig()) {
 
 function clearOnboardingEditor() {
   if ($("onboardingEditId")) $("onboardingEditId").value = "";
+  if ($("onboardingEditCode")) $("onboardingEditCode").value = "";
   clearManagedTranslationFields("onboardingItemText");
 }
 
-function saveOnboardingContentItem() {
+async function saveOnboardingContentItem() {
   if (!canManageOnboardingContent()) return;
   const texts = readManagedTranslationFields("onboardingItemText");
   if (missingManagedLanguages(texts).length) {
@@ -685,37 +717,91 @@ function saveOnboardingContentItem() {
     return;
   }
   const editId = String($("onboardingEditId")?.value || "");
-  const config = loadContentConfig();
-  if (editId) {
-    const item = config.onboardingItems.find(entry => entry.id === editId);
-    if (!item) return;
-    item.texts = texts;
+
+  if (CONFIG.API_BASE_URL && apiToken) {
+    try {
+      const payload = { title_zh: texts["zh-TW"] || "", title_en: texts.en || "", title_th: texts.th || "" };
+      let response;
+      if (editId) {
+        response = await fetch(apiUrl(`/api/admin/onboarding-items/${editId}`), {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiToken}` },
+          body: JSON.stringify(payload)
+        });
+      } else {
+        const code = String($("onboardingEditCode")?.value || "").trim().toUpperCase() || `ITEM-${Date.now()}`;
+        response = await fetch(apiUrl("/api/admin/onboarding-items"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiToken}` },
+          body: JSON.stringify({ code, ...payload, sort_order: (onboardingItemsCache?.length || 0) + 1 })
+        });
+      }
+      const data = await readJsonSafely(response);
+      if (!response.ok) {
+        setContentManagerMessage("onboardingManagerMessage", errorMessageFrom(data, `HTTP ${response.status}`), true);
+        return;
+      }
+    } catch (error) {
+      setContentManagerMessage("onboardingManagerMessage", `${t("backend_unavailable")} ${error.message || ""}`, true);
+      return;
+    }
   } else {
-    config.onboardingItems.push({ id: nextManagedId("item"), key: "", texts });
+    const config = loadContentConfig();
+    if (editId) {
+      const item = config.onboardingItems.find(entry => String(entry.id) === editId);
+      if (!item) return;
+      item.texts = texts;
+    } else {
+      config.onboardingItems.push({ id: nextManagedId("item"), key: "", texts });
+    }
+    saveContentConfig(config);
   }
-  saveContentConfig(config);
+
   clearOnboardingEditor();
   setContentManagerMessage("onboardingManagerMessage", t("content_saved"));
-  renderOnboarding();
+  await renderOnboarding();
 }
 
-function deleteOnboardingContentItem(id) {
+async function deleteOnboardingContentItem(id) {
   if (!canManageOnboardingContent()) return;
-  const config = loadContentConfig();
-  if (config.onboardingItems.length <= 1) {
-    setContentManagerMessage("onboardingManagerMessage", t("content_minimum_one"), true);
-    return;
-  }
   if (!window.confirm(t("content_confirm_delete"))) return;
-  config.onboardingItems = config.onboardingItems.filter(item => item.id !== id);
-  saveContentConfig(config);
+
+  if (CONFIG.API_BASE_URL && apiToken) {
+    try {
+      const response = await fetch(apiUrl(`/api/admin/onboarding-items/${id}`), {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${apiToken}` }
+      });
+      if (!response.ok) {
+        const data = await readJsonSafely(response);
+        setContentManagerMessage("onboardingManagerMessage", errorMessageFrom(data, `HTTP ${response.status}`), true);
+        return;
+      }
+    } catch (error) {
+      setContentManagerMessage("onboardingManagerMessage", `${t("backend_unavailable")} ${error.message || ""}`, true);
+      return;
+    }
+  } else {
+    const config = loadContentConfig();
+    if (config.onboardingItems.length <= 1) {
+      setContentManagerMessage("onboardingManagerMessage", t("content_minimum_one"), true);
+      return;
+    }
+    config.onboardingItems = config.onboardingItems.filter(item => String(item.id) !== id);
+    saveContentConfig(config);
+  }
+
   clearOnboardingEditor();
-  renderOnboarding();
+  await renderOnboarding();
   setContentManagerMessage("onboardingManagerMessage", t("content_deleted"));
 }
 
 function restoreDefaultOnboardingContent() {
   if (!canManageOnboardingContent() || !window.confirm(t("content_confirm_reset"))) return;
+  if (CONFIG.API_BASE_URL && apiToken) {
+    setContentManagerMessage("onboardingManagerMessage", t("content_reset_not_available_online"), true);
+    return;
+  }
   const config = loadContentConfig();
   config.onboardingItems = cloneManagedDefaults().onboardingItems;
   saveContentConfig(config);
@@ -1203,29 +1289,89 @@ function saveOnboardingState(state) {
   localStorage.setItem(onboardingKey(), JSON.stringify(state));
 }
 
-function renderOnboarding() {
+let onboardingItemsCache = null;
+let onboardingProgressCache = {};
+
+async function loadOnboardingItems() {
+  if (CONFIG.API_BASE_URL && apiToken) {
+    try {
+      const response = await fetch(apiUrl("/api/onboarding/items"), {
+        headers: { Authorization: `Bearer ${apiToken}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (Array.isArray(data) && data.length) {
+          return data.map(item => ({ id: item.id, code: item.code, texts: { "zh-TW": item.title_zh, en: item.title_en, th: item.title_th } }));
+        }
+      }
+    } catch (error) {
+      console.info("Onboarding items API unavailable; using local demo content.", error);
+    }
+  }
+  return loadContentConfig().onboardingItems;
+}
+
+async function loadOnboardingProgress() {
+  if (CONFIG.API_BASE_URL && apiToken) {
+    try {
+      const response = await fetch(apiUrl("/api/onboarding/progress"), {
+        headers: { Authorization: `Bearer ${apiToken}` }
+      });
+      if (response.ok) return await response.json();
+    } catch (error) {
+      console.info("Onboarding progress API unavailable; using local demo progress.", error);
+    }
+  }
+  return null;
+}
+
+async function toggleOnboardingProgress(itemId, completed) {
+  if (CONFIG.API_BASE_URL && apiToken && typeof itemId === "number") {
+    try {
+      await fetch(apiUrl(`/api/onboarding/progress/${itemId}`), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiToken}` },
+        body: JSON.stringify({ completed })
+      });
+      return;
+    } catch (error) {
+      console.info("Could not save onboarding progress to backend.", error);
+    }
+  }
+  const next = loadOnboardingState();
+  next[itemId] = completed;
+  saveOnboardingState(next);
+}
+
+async function renderOnboarding() {
   const checklist = $("onboardingChecklist");
   const cards = $("policyCards");
   if (!checklist || !cards) return;
-  const config = loadContentConfig();
-  const state = loadOnboardingState();
-  checklist.innerHTML = config.onboardingItems.map(item => {
-    const checked = Boolean(state[item.id]);
+
+  const items = await loadOnboardingItems();
+  onboardingItemsCache = items;
+  const backendProgress = await loadOnboardingProgress();
+  const localState = loadOnboardingState();
+  onboardingProgressCache = backendProgress || localState;
+
+  checklist.innerHTML = items.map(item => {
+    const checked = Boolean(onboardingProgressCache[item.id]);
     return `<label class="check-item ${checked ? "done" : ""}">` +
-      `<input type="checkbox" data-onboarding-id="${escapeHtml(item.id)}" ${checked ? "checked" : ""}>` +
+      `<input type="checkbox" data-onboarding-id="${escapeHtml(String(item.id))}" ${checked ? "checked" : ""}>` +
       `<span>${escapeHtml(managedText(item))}</span></label>`;
   }).join("");
   checklist.querySelectorAll("[data-onboarding-id]").forEach(input => {
-    input.onchange = () => {
-      const next = loadOnboardingState();
-      next[input.dataset.onboardingId] = input.checked;
-      saveOnboardingState(next);
+    input.onchange = async () => {
+      const rawId = input.dataset.onboardingId;
+      const id = backendProgress ? Number(rawId) : rawId;
+      onboardingProgressCache[id] = input.checked;
+      await toggleOnboardingProgress(id, input.checked);
       renderOnboarding();
     };
   });
-  const done = config.onboardingItems.filter(item => state[item.id]).length;
-  const percent = config.onboardingItems.length ? Math.round((done / config.onboardingItems.length) * 100) : 0;
-  if ($("onboardingProgressText")) $("onboardingProgressText").textContent = t("onboarding_progress", { done, total: config.onboardingItems.length });
+  const done = items.filter(item => onboardingProgressCache[item.id]).length;
+  const percent = items.length ? Math.round((done / items.length) * 100) : 0;
+  if ($("onboardingProgressText")) $("onboardingProgressText").textContent = t("onboarding_progress", { done, total: items.length });
   if ($("onboardingProgressBar")) $("onboardingProgressBar").style.width = `${percent}%`;
 
   cards.innerHTML = POLICY_CARDS.map(([title, body]) =>
@@ -1236,7 +1382,7 @@ function renderOnboarding() {
   cards.querySelectorAll("[data-policy-question]").forEach(button => {
     button.onclick = () => openOnboardingAI(button.dataset.policyQuestion);
   });
-  renderOnboardingManager(config);
+  renderOnboardingManager();
 }
 
 function openOnboardingAI(topicKey = "") {
