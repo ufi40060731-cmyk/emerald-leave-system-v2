@@ -2600,6 +2600,7 @@ async function sendAI() {
         })
       });
       const data = await response.json();
+      if (response.status === 429) throw new Error("RATE_LIMITED");
       if (!response.ok) throw new Error(data.detail || `HTTP ${response.status}`);
       answer = data.answer || t("ai_no_results");
       sources = Array.isArray(data.sources) ? data.sources : [];
@@ -2613,7 +2614,10 @@ async function sendAI() {
   } catch (error) {
     console.info("RAG chat unavailable.", error);
     pendingBubble.remove();
-    const assistantMessage = { role: "assistant", content: `${t("ai_error")} ${t("backend_unavailable")}`, sources: [] };
+    const content = error.message === "RATE_LIMITED"
+      ? t("ai_rate_limited")
+      : `${t("ai_error")} ${t("backend_unavailable")}`;
+    const assistantMessage = { role: "assistant", content, sources: [] };
     aiHistory.push(assistantMessage);
     saveAIHistory();
     addChatBubble(assistantMessage);

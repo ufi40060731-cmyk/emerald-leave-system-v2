@@ -193,6 +193,12 @@ CHATBOT_API_KEY=sk-...
 ⚠️ 記得去 OpenAI 帳號設定「Monthly budget / usage limit」，避免被大量使用
 或誤用時產生超乎預期的費用。
 
+**內建的用量保護（不需另外設定，預設就有開啟）**：每個使用者每小時最多問
+`CHATBOT_RATE_LIMIT_PER_HOUR`（預設 30）次問題，超過會回傳 429，前端會顯示
+「這一小時問太多次了」的提示，而不是誤導成系統故障。這是為了避免程式錯誤、
+無限迴圈或惡意濫用把 LLM 費用燒爆，屬於應用層面的第二道保護（跟 OpenAI 帳號
+本身的用量上限互相搭配）。
+
 ---
 
 ## 環境變數完整參考
@@ -210,6 +216,7 @@ CHATBOT_API_KEY=sk-...
 | `HOLIDAY_SYNC_KEY` | 是（若用假日同步 API） | 呼叫 `/api/holidays/sync/{year}` 等端點需要的密鑰 |
 | `HOLIDAY_AUTO_SYNC_ENABLED` | 否 | 預設 `true`，每日自動同步泰國假日 |
 | `CHATBOT_API_URL` / `CHATBOT_MODEL` / `CHATBOT_API_KEY` | 否 | 設定後 Chatbot 才會用真正 LLM 生成回答（見上一節） |
+| `CHATBOT_RATE_LIMIT_PER_HOUR` | 否 | 預設 30，每位使用者每小時最多問幾次「詢問 AI」，超過回傳 429 |
 
 ---
 

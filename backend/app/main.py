@@ -1691,6 +1691,29 @@ def _clear_login_failures(account: str) -> None:
         _login_failures.pop(account, None)
 
 
+_CHATBOT_RATE_LIMIT_PER_HOUR = int(os.getenv("CHATBOT_RATE_LIMIT_PER_HOUR", "30"))
+_chatbot_requests: dict[str, list[float]] = {}
+_chatbot_requests_lock = threading.Lock()
+
+
+def _check_chatbot_rate_limit(user_id: str) -> None:
+    """Raise 429 if this user has sent too many chat messages in the last hour.
+
+    Protects against runaway LLM API costs (bugs, loops, or misuse) when a paid
+    CHATBOT_API_KEY is configured. Adjust via CHATBOT_RATE_LIMIT_PER_HOUR.
+    """
+    now = time.monotonic()
+    with _chatbot_requests_lock:
+        recent = [t for t in _chatbot_requests.get(user_id, []) if now - t < 3600]
+        recent.append(now)
+        _chatbot_requests[user_id] = recent
+        if len(recent) > _CHATBOT_RATE_LIMIT_PER_HOUR:
+            raise HTTPException(
+                status_code=429,
+                detail=f"Too many AI questions this hour (limit: {_CHATBOT_RATE_LIMIT_PER_HOUR}). Please try again later.",
+            )
+
+
 @app.post("/api/auth/login", response_model=TokenResponse)
 def login(payload: LoginRequest, db: Annotated[Session, Depends(get_db)]) -> TokenResponse:
     account = payload.account.strip().upper()
@@ -2963,6 +2986,7 @@ def rag_chat(
     user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
 ) -> dict:
+    _check_chatbot_rate_limit(user.id)
     response_language = _detect_message_language(payload.message, payload.language)
     utility_answer = _utility_chat_answer(payload.message, response_language)
     if utility_answer is not None:
