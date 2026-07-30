@@ -1037,6 +1037,13 @@ function buildDemoAttendance() {
   return items.reverse();
 }
 
+function timeToMinutes(value) {
+  if (!value || typeof value !== "string") return NaN;
+  const match = value.match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return NaN;
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
 async function loadAttendanceRecords() {
   if (CONFIG.API_BASE_URL && apiToken) {
     try {
@@ -1065,7 +1072,11 @@ async function renderAttendance() {
   $("attendanceRate").textContent = `${rate}%`;
   $("attendanceLateCount").textContent = String(late);
   $("attendanceMissingCount").textContent = String(missing);
-  $("attendanceOvertime").textContent = "4.5";
+  const totalOvertimeMinutes = items.reduce((sum, item) => {
+    const minutes = timeToMinutes(item.clock_out) - timeToMinutes(item.scheduled_end);
+    return sum + (Number.isFinite(minutes) && minutes > 0 ? minutes : 0);
+  }, 0);
+  $("attendanceOvertime").textContent = (totalOvertimeMinutes / 60).toFixed(1);
   window.__emeraldAttendance = items;
   renderEnterpriseKpis();
   if (["manager", "hr", "admin"].includes(current.role)) {
@@ -1852,6 +1863,7 @@ async function loadLeaveRequestsFromBackend() {
     saveRequests();
     renderRequests();
     updateCounts();
+    renderBars();
   } catch (error) {
     console.info("Could not refresh leave requests from backend; showing cached data.", error);
   }
@@ -1888,6 +1900,7 @@ window.approveRequest = async (id, stage) => {
   addAudit("approve_leave_action");
   renderRequests();
   updateCounts();
+  renderBars();
 };
 
 window.rejectRequest = async id => {
@@ -1918,6 +1931,7 @@ window.rejectRequest = async id => {
   addAudit("reject_leave_action");
   renderRequests();
   updateCounts();
+  renderBars();
 };
 
 function statusClass(status) {
@@ -2254,10 +2268,29 @@ async function confirmExcelImport() {
 function renderBars() {
   if (!$("trendBars") || !$("reportBars")) return;
   const formatter = new Intl.DateTimeFormat(lang, { month: "short" });
-  const months = Array.from({ length: 6 }, (_, index) => formatter.format(new Date(2026, index, 1)));
-  const values = [45, 70, 58, 82, 64, 76];
+  const now = new Date();
+  const monthCursors = Array.from({ length: 6 }, (_, index) => {
+    const cursor = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
+    return cursor;
+  });
+  const months = monthCursors.map(cursor => formatter.format(cursor));
+  const monthlyDays = monthCursors.map(cursor => {
+    const total = requests
+      .filter(request => request.status === "approved")
+      .filter(request => {
+        const firstDate = String(request.date || "").split("~")[0].trim();
+        const parsed = new Date(firstDate);
+        return !Number.isNaN(parsed.getTime())
+          && parsed.getFullYear() === cursor.getFullYear()
+          && parsed.getMonth() === cursor.getMonth();
+      })
+      .reduce((sum, request) => sum + Number(request.workdays || 0), 0);
+    return total;
+  });
+  const maxDays = Math.max(1, ...monthlyDays);
+  const values = monthlyDays.map(days => Math.round((days / maxDays) * 100));
   $("trendBars").innerHTML = values.map((value, index) =>
-    `<div class="bar" style="height:${value}%"><span>${escapeHtml(months[index])}</span></div>`
+    `<div class="bar" style="height:${value}%" title="${escapeHtml(String(monthlyDays[index]))}"><span>${escapeHtml(months[index])}</span></div>`
   ).join("");
 
   const renderReportBars = values => {
