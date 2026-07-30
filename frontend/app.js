@@ -373,6 +373,14 @@ function apiUrl(path) {
   return CONFIG.API_BASE_URL ? `${CONFIG.API_BASE_URL}${path}` : "";
 }
 
+async function readJsonSafely(response) {
+  try {
+    return await response.json();
+  } catch {
+    return {};
+  }
+}
+
 function localIsoDate(date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -1343,11 +1351,7 @@ function bindEvents() {
       ...requests.map(request => [request.id, request.user, t(request.type), request.date, request.workdays || 0, t(request.status)])
     ]
   );
-  $("exportReport").onclick = () => downloadCSV("monthly_report.csv", [
-    [t("total_employees_csv"), 86],
-    [t("approval_rate_csv"), "94%"],
-    [t("average_leave_days_csv"), 1.8]
-  ]);
+  $("exportReport").onclick = () => exportMonthlyReport();
   $("downloadTemplate").onclick = () => downloadCSV("employee_import_template.csv", [
     [t("employee_id"), t("name_label"), t("role"), t("department"), t("rotation"), t("initial_password")],
     ["E101", "Somchai", "employee", t("production"), "A", ""],
@@ -1516,6 +1520,9 @@ function enterApp(id, recordAudit = true) {
   }
   buildNav();
   renderRequests();
+  if (CONFIG.API_BASE_URL && apiToken) {
+    loadLeaveRequestsFromBackend();
+  }
   renderAudit();
   renderHolidayTable();
   renderRotationPage();
@@ -1722,20 +1729,95 @@ function renderRequests() {
   }).join("") || `<tr><td colspan="7">${escapeHtml(t("no_data"))}</td></tr>`;
 }
 
-window.approveRequest = (id, stage) => {
+function mapBackendLeaveToLocal(item) {
+  const employeeName = USERS[item.employee_id]?.name;
+  const date = item.start_date === item.end_date
+    ? item.start_date
+    : `${item.start_date} ~ ${item.end_date}`;
+  return {
+    id: item.id,
+    user: employeeName ? `${item.employee_id} ${employeeName}` : item.employee_id,
+    type: LEAVE_TYPE_ALIASES[item.leave_type] || item.leave_type || "annual_leave",
+    date,
+    workdays: Number(item.workdays || 0),
+    status: item.status
+  };
+}
+
+async function loadLeaveRequestsFromBackend() {
+  try {
+    const response = await fetch(apiUrl("/api/leaves"), {
+      headers: { Authorization: `Bearer ${apiToken}` }
+    });
+    if (!response.ok) return;
+    const data = await response.json();
+    if (!Array.isArray(data)) return;
+    requests = data.map(mapBackendLeaveToLocal);
+    saveRequests();
+    renderRequests();
+    updateCounts();
+  } catch (error) {
+    console.info("Could not refresh leave requests from backend; showing cached data.", error);
+  }
+}
+
+window.approveRequest = async (id, stage) => {
   const request = requests.find(item => Number(item.id) === Number(id));
   if (!request) return;
-  request.status = stage === "manager" ? "hr_pending" : "approved";
+
+  if (CONFIG.API_BASE_URL && apiToken) {
+    const path = stage === "manager"
+      ? `/api/leaves/${id}/manager-approve`
+      : `/api/leaves/${id}/hr-approve`;
+    try {
+      const response = await fetch(apiUrl(path), {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiToken}` }
+      });
+      const data = await readJsonSafely(response);
+      if (!response.ok) {
+        alert(`${t("action_failed")} ${data.detail || response.status}`);
+        return;
+      }
+      Object.assign(request, mapBackendLeaveToLocal(data));
+    } catch (error) {
+      alert(`${t("backend_unavailable")} ${error.message || ""}`);
+      return;
+    }
+  } else {
+    request.status = stage === "manager" ? "hr_pending" : "approved";
+  }
+
   saveRequests();
   addAudit("approve_leave_action");
   renderRequests();
   updateCounts();
 };
 
-window.rejectRequest = id => {
+window.rejectRequest = async id => {
   const request = requests.find(item => Number(item.id) === Number(id));
   if (!request) return;
-  request.status = "rejected";
+
+  if (CONFIG.API_BASE_URL && apiToken) {
+    try {
+      const response = await fetch(apiUrl(`/api/leaves/${id}/reject`), {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiToken}` }
+      });
+      const data = await readJsonSafely(response);
+      if (!response.ok) {
+        alert(`${t("action_failed")} ${data.detail || response.status}`);
+        return;
+      }
+      Object.assign(request, mapBackendLeaveToLocal(data));
+    } catch (error) {
+      alert(`${t("backend_unavailable")} ${error.message || ""}`);
+      return;
+    }
+  } else {
+    request.status = "rejected";
+  }
+
   saveRequests();
   addAudit("reject_leave_action");
   renderRequests();
@@ -1780,6 +1862,36 @@ function renderAudit() {
     const detail = item.detail ? ` · ${item.detail}` : "";
     return `<tr><td>${escapeHtml(formatAuditTime(item.time))}</td><td>${escapeHtml(item.user)}</td><td>${escapeHtml(label + detail)}</td></tr>`;
   }).join("") || `<tr><td colspan="3">${escapeHtml(t("no_data"))}</td></tr>`;
+}
+
+async function exportMonthlyReport() {
+  const decided = requests.filter(item => item.status === "approved" || item.status === "rejected");
+  const approved = requests.filter(item => item.status === "approved");
+  const approvalRate = decided.length ? Math.round((approved.length / decided.length) * 100) : null;
+  const averageDays = approved.length
+    ? (approved.reduce((sum, item) => sum + Number(item.workdays || 0), 0) / approved.length)
+    : null;
+
+  let totalEmployees = null;
+  if (CONFIG.API_BASE_URL && apiToken && (current?.role === "hr" || current?.role === "admin")) {
+    try {
+      const response = await fetch(apiUrl("/api/admin/users"), {
+        headers: { Authorization: `Bearer ${apiToken}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (Array.isArray(data)) totalEmployees = data.length;
+      }
+    } catch (error) {
+      console.info("Could not fetch employee count for report.", error);
+    }
+  }
+
+  downloadCSV("monthly_report.csv", [
+    [t("total_employees_csv"), totalEmployees ?? t("not_available")],
+    [t("approval_rate_csv"), approvalRate === null ? t("not_available") : `${approvalRate}%`],
+    [t("average_leave_days_csv"), averageDays === null ? t("not_available") : averageDays.toFixed(1)]
+  ]);
 }
 
 function downloadCSV(filename, rows) {
