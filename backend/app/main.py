@@ -3020,6 +3020,9 @@ def list_leaves(
     stmt = select(LeaveRequest).order_by(LeaveRequest.id.desc())
     if user.role == Role.employee.value:
         stmt = stmt.where(LeaveRequest.employee_id == user.id)
+    elif user.role == Role.manager.value:
+        dept_employee_ids = select(User.id).where(User.department == user.department)
+        stmt = stmt.where(LeaveRequest.employee_id.in_(dept_employee_ids))
     return list(db.scalars(stmt))
 
 
@@ -3054,7 +3057,7 @@ def create_leave(
 @app.post("/api/leaves/{leave_id}/manager-approve", response_model=LeaveOut)
 def manager_approve(
     leave_id: int,
-    _: Annotated[User, Depends(require_roles(Role.manager, Role.admin))],
+    user: Annotated[User, Depends(require_roles(Role.manager, Role.admin))],
     db: Annotated[Session, Depends(get_db)],
 ) -> LeaveRequest:
     item = db.get(LeaveRequest, leave_id)
@@ -3062,6 +3065,10 @@ def manager_approve(
         raise HTTPException(status_code=404, detail="Leave request not found")
     if item.status != LeaveStatus.manager_pending.value:
         raise HTTPException(status_code=409, detail="Request is not awaiting manager approval")
+    if user.role == Role.manager.value:
+        employee = db.get(User, item.employee_id)
+        if not employee or employee.department != user.department:
+            raise HTTPException(status_code=403, detail="Employee is outside your department")
     item.status = LeaveStatus.hr_pending.value
     db.commit()
     db.refresh(item)
@@ -3088,12 +3095,16 @@ def hr_approve(
 @app.post("/api/leaves/{leave_id}/reject", response_model=LeaveOut)
 def reject_leave(
     leave_id: int,
-    _: Annotated[User, Depends(require_roles(Role.manager, Role.hr, Role.admin))],
+    user: Annotated[User, Depends(require_roles(Role.manager, Role.hr, Role.admin))],
     db: Annotated[Session, Depends(get_db)],
 ) -> LeaveRequest:
     item = db.get(LeaveRequest, leave_id)
     if not item:
         raise HTTPException(status_code=404, detail="Leave request not found")
+    if user.role == Role.manager.value:
+        employee = db.get(User, item.employee_id)
+        if not employee or employee.department != user.department:
+            raise HTTPException(status_code=403, detail="Employee is outside your department")
     item.status = LeaveStatus.rejected.value
     db.commit()
     db.refresh(item)
