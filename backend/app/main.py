@@ -1712,6 +1712,7 @@ def login(payload: LoginRequest, db: Annotated[Session, Depends(get_db)]) -> Tok
             "department": user.department,
             "rotation_group": user.rotation_group,
             "is_active": user.is_active,
+            "photo_data": user.photo_data,
         },
     )
 
@@ -2088,7 +2089,7 @@ def reseed_work_rules(
 
 @app.get("/api/me")
 def me(user: Annotated[User, Depends(get_current_user)]) -> dict:
-    return {"id": user.id, "name": user.name, "role": user.role, "department": user.department, "rotation_group": user.rotation_group, "is_active": user.is_active}
+    return {"id": user.id, "name": user.name, "role": user.role, "department": user.department, "rotation_group": user.rotation_group, "is_active": user.is_active, "photo_data": user.photo_data}
 
 
 @app.get("/api/schedules/settings", response_model=RotationSettingsOut)

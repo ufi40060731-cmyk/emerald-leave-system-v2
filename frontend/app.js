@@ -1177,6 +1177,32 @@ async function boot() {
   renderEnterpriseKpis();
   renderNotifications();
   const saved = sessionStorage.getItem(STORAGE.user) || sessionStorage.getItem(LEGACY_STORAGE.user);
+  if (saved && apiToken && CONFIG.API_BASE_URL) {
+    try {
+      const response = await fetch(apiUrl("/api/me"), {
+        headers: { Authorization: `Bearer ${apiToken}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        USERS[data.id] = {
+          name: data.name, role: data.role,
+          department: data.department || "General",
+          rotationGroup: data.rotation_group || "NONE",
+          photo: data.photo_data || null
+        };
+        enterApp(data.id, false);
+        return;
+      }
+      if (response.status === 401 || response.status === 403) {
+        apiToken = "";
+        sessionStorage.removeItem(STORAGE.token);
+        sessionStorage.removeItem(STORAGE.user);
+        return;
+      }
+    } catch (error) {
+      console.info("Could not refresh session from /api/me, falling back to cached data.", error);
+    }
+  }
   if (saved && USERS[saved]) enterApp(saved, false);
 }
 
@@ -1439,7 +1465,8 @@ async function login() {
         USERS[data.user.id] = {
           name: data.user.name, role: data.user.role,
           department: data.user.department || "General",
-          rotationGroup: data.user.rotation_group || "NONE"
+          rotationGroup: data.user.rotation_group || "NONE",
+          photo: data.user.photo_data || null
         };
         enterApp(data.user.id);
         return;
@@ -1482,6 +1509,12 @@ function enterApp(id, recordAudit = true) {
   $("appView").classList.remove("hidden");
   $("userName").textContent = `${id} ${current.name}`;
   $("userRole").textContent = t(current.role);
+  if (current.photo) {
+    $("userPhoto").src = current.photo;
+    $("userPhoto").classList.remove("hidden");
+  } else {
+    $("userPhoto").classList.add("hidden");
+  }
   buildNav();
   renderRequests();
   renderAudit();
