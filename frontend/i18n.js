@@ -1,5 +1,9 @@
 window.EMERALD_I18N = Object.freeze({
   "zh-TW": {
+    "quiz_question_created_action": "新增測驗題目",
+    "quiz_question_updated_action": "更新測驗題目",
+    "quiz_question_deleted_action": "刪除測驗題目",
+    "quiz_code_placeholder": "代碼（例如 Q6，只在新增時需要填）",
     "ai_leave_status_intro": "以下是你最近的請假紀錄（日期｜假別｜狀態）：",
     "ai_leave_status_empty": "目前查不到你的請假紀錄，你可能還沒申請過假，或是還沒連上後端資料庫。",
     "onboarding_item_created_action": "新增新人必讀項目",
@@ -459,6 +463,10 @@ window.EMERALD_I18N = Object.freeze({
     "translation_missing_text": "此內容尚未提供目前語言的翻譯"
   },
   "en": {
+    "quiz_question_created_action": "Created quiz question",
+    "quiz_question_updated_action": "Updated quiz question",
+    "quiz_question_deleted_action": "Deleted quiz question",
+    "quiz_code_placeholder": "Code (e.g. Q6, only needed when adding a new question)",
     "ai_leave_status_intro": "Here are your recent leave requests (date | type | status):",
     "ai_leave_status_empty": "No leave requests found for you yet - you may not have applied for leave, or the backend isn't connected.",
     "onboarding_item_created_action": "Created onboarding item",
@@ -918,6 +926,10 @@ window.EMERALD_I18N = Object.freeze({
     "translation_missing_text": "This content has not been translated into the selected language yet"
   },
   "th": {
+    "quiz_question_created_action": "เพิ่มคำถามแบบทดสอบ",
+    "quiz_question_updated_action": "แก้ไขคำถามแบบทดสอบ",
+    "quiz_question_deleted_action": "ลบคำถามแบบทดสอบ",
+    "quiz_code_placeholder": "รหัส (เช่น Q6 ใช้เฉพาะตอนเพิ่มคำถามใหม่)",
     "ai_leave_status_intro": "นี่คือคำขอลาล่าสุดของคุณ (วันที่ | ประเภท | สถานะ):",
     "ai_leave_status_empty": "ยังไม่พบคำขอลาของคุณ อาจเป็นเพราะคุณยังไม่เคยยื่นคำขอลา หรือยังไม่ได้เชื่อมต่อระบบหลังบ้าน",
     "onboarding_item_created_action": "เพิ่มรายการปฐมนิเทศ",

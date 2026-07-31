@@ -172,6 +172,9 @@ const AUDIT_ALIASES = {
   onboarding_item_created: "onboarding_item_created_action",
   onboarding_item_updated: "onboarding_item_updated_action",
   onboarding_item_deleted: "onboarding_item_deleted_action",
+  quiz_question_created: "quiz_question_created_action",
+  quiz_question_updated: "quiz_question_updated_action",
+  quiz_question_deleted: "quiz_question_deleted_action",
   attendance_import: "excel_import_action",
   attendance_correction_requested: "attendance_correction_action",
   attendance_correction_approved: "approve_leave_action",
@@ -810,47 +813,96 @@ function restoreDefaultOnboardingContent() {
   setContentManagerMessage("onboardingManagerMessage", t("content_saved"));
 }
 
-function renderSopQuiz() {
+let quizQuestionsCache = null;
+
+async function loadQuizQuestions() {
+  if (CONFIG.API_BASE_URL && apiToken) {
+    try {
+      const response = await fetch(apiUrl("/api/quiz/questions"), {
+        headers: { Authorization: `Bearer ${apiToken}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (Array.isArray(data) && data.length) {
+          return data.map(question => ({
+            id: question.id, code: question.code, answer: question.answer,
+            texts: { "zh-TW": question.text_zh, en: question.text_en, th: question.text_th }
+          }));
+        }
+      }
+    } catch (error) {
+      console.info("Quiz questions API unavailable; using local demo content.", error);
+    }
+  }
+  return loadContentConfig().quizQuestions;
+}
+
+async function renderSopQuiz() {
   const container = $("sopQuizQuestions");
   if (!container) return;
   const config = loadContentConfig();
+  const questions = await loadQuizQuestions();
+  quizQuestionsCache = questions;
   const progress = loadSopProgress();
-  if ($("sopQuizIntro")) $("sopQuizIntro").textContent = t("sop_quiz_intro_dynamic", { count: config.quizQuestions.length, score: config.passingScore });
-  container.innerHTML = config.quizQuestions.map((question, index) =>
+  if ($("sopQuizIntro")) $("sopQuizIntro").textContent = t("sop_quiz_intro_dynamic", { count: questions.length, score: config.passingScore });
+  container.innerHTML = questions.map((question, index) =>
     `<div class="quiz-question"><p><b>${index + 1}.</b> ${escapeHtml(managedText(question))}</p>` +
-    `<div class="quiz-options"><label><input type="radio" name="sopQuiz_${escapeHtml(question.id)}" value="yes"> <span>${escapeHtml(t("quiz_yes"))}</span></label>` +
-    `<label><input type="radio" name="sopQuiz_${escapeHtml(question.id)}" value="no"> <span>${escapeHtml(t("quiz_no"))}</span></label></div></div>`
+    `<div class="quiz-options"><label><input type="radio" name="sopQuiz_${escapeHtml(String(question.id))}" value="yes"> <span>${escapeHtml(t("quiz_yes"))}</span></label>` +
+    `<label><input type="radio" name="sopQuiz_${escapeHtml(String(question.id))}" value="no"> <span>${escapeHtml(t("quiz_no"))}</span></label></div></div>`
   ).join("");
   if ($("sopQuizScore")) $("sopQuizScore").textContent = progress.quizScore ? t("sop_quiz_score", { score: progress.quizScore }) : "";
-  renderQuizManager(config);
+  renderQuizManager();
 }
 
-function renderQuizManager(config = loadContentConfig()) {
+async function renderQuizManager() {
   const button = $("toggleQuizManager");
   const panel = $("quizManager");
   const list = $("quizManagerList");
   const canManage = canManageOnboardingContent();
+  const config = loadContentConfig();
   if (button) {
     button.hidden = !canManage;
     button.textContent = panel?.classList.contains("hidden") ? t("content_manage") : t("content_close");
   }
+  if ($("quizPassingScore")) $("quizPassingScore").value = String(config.passingScore);
   if (!panel || !list) return;
   if (!canManage) {
     panel.classList.add("hidden");
     return;
   }
-  if ($("quizPassingScore")) $("quizPassingScore").value = String(config.passingScore);
-  list.innerHTML = config.quizQuestions.map((question, index) =>
-    `<div class="manager-row"><span class="manager-index">${index + 1}</span>` +
+
+  let questions = quizQuestionsCache || [];
+  if (CONFIG.API_BASE_URL && apiToken) {
+    try {
+      const response = await fetch(apiUrl("/api/admin/quiz-questions"), {
+        headers: { Authorization: `Bearer ${apiToken}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        questions = data.map(question => ({
+          id: question.id, code: question.code, active: question.active, answer: question.answer,
+          texts: { "zh-TW": question.text_zh, en: question.text_en, th: question.text_th }
+        }));
+      }
+    } catch (error) {
+      console.info("Could not load quiz questions for admin panel.", error);
+    }
+  }
+
+  list.innerHTML = questions.map((question, index) =>
+    `<div class="manager-row">` +
+    `<span class="manager-index">${index + 1}${question.active === false ? ` (${escapeHtml(t("inactive_label"))})` : ""}</span>` +
     `<span class="manager-text">${escapeHtml(managedText(question))}<small>${escapeHtml(t("quiz_correct_answer"))}: ${escapeHtml(t(question.answer === "yes" ? "quiz_yes" : "quiz_no"))} · ${escapeHtml(managedTranslationStatus(question))}</small></span>` +
-    `<div class="manager-actions"><button type="button" class="soft" data-quiz-edit="${escapeHtml(question.id)}">${escapeHtml(t("content_edit"))}</button>` +
-    `<button type="button" class="ghost danger" data-quiz-delete="${escapeHtml(question.id)}">${escapeHtml(t("content_delete"))}</button></div></div>`
+    `<div class="manager-actions"><button type="button" class="soft" data-quiz-edit="${escapeHtml(String(question.id))}">${escapeHtml(t("content_edit"))}</button>` +
+    `<button type="button" class="ghost danger" data-quiz-delete="${escapeHtml(String(question.id))}">${escapeHtml(t("content_delete"))}</button></div></div>`
   ).join("");
   list.querySelectorAll("[data-quiz-edit]").forEach(buttonElement => {
     buttonElement.onclick = () => {
-      const question = config.quizQuestions.find(entry => entry.id === buttonElement.dataset.quizEdit);
+      const id = CONFIG.API_BASE_URL && apiToken ? Number(buttonElement.dataset.quizEdit) : buttonElement.dataset.quizEdit;
+      const question = questions.find(entry => entry.id === id);
       if (!question) return;
-      $("quizEditId").value = question.id;
+      $("quizEditId").value = String(question.id);
+      $("quizEditCode").value = question.code || "";
       fillManagedTranslationFields("quizQuestionText", question);
       $("quizCorrectAnswer").value = question.answer;
       $("quizQuestionTextZh")?.focus();
@@ -864,11 +916,12 @@ function renderQuizManager(config = loadContentConfig()) {
 
 function clearQuizEditor() {
   if ($("quizEditId")) $("quizEditId").value = "";
+  if ($("quizEditCode")) $("quizEditCode").value = "";
   clearManagedTranslationFields("quizQuestionText");
   if ($("quizCorrectAnswer")) $("quizCorrectAnswer").value = "yes";
 }
 
-function saveQuizQuestion() {
+async function saveQuizQuestion() {
   if (!canManageOnboardingContent()) return;
   const texts = readManagedTranslationFields("quizQuestionText");
   if (missingManagedLanguages(texts).length) {
@@ -877,36 +930,86 @@ function saveQuizQuestion() {
   }
   const answer = $("quizCorrectAnswer")?.value === "no" ? "no" : "yes";
   const editId = String($("quizEditId")?.value || "");
-  const config = loadContentConfig();
-  if (editId) {
-    const question = config.quizQuestions.find(entry => entry.id === editId);
-    if (!question) return;
-    question.texts = texts;
-    question.answer = answer;
+
+  if (CONFIG.API_BASE_URL && apiToken) {
+    try {
+      const payload = { text_zh: texts["zh-TW"] || "", text_en: texts.en || "", text_th: texts.th || "", answer };
+      let response;
+      if (editId) {
+        response = await fetch(apiUrl(`/api/admin/quiz-questions/${editId}`), {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiToken}` },
+          body: JSON.stringify(payload)
+        });
+      } else {
+        const code = String($("quizEditCode")?.value || "").trim().toUpperCase() || `Q-${Date.now()}`;
+        response = await fetch(apiUrl("/api/admin/quiz-questions"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiToken}` },
+          body: JSON.stringify({ code, ...payload, sort_order: (quizQuestionsCache?.length || 0) + 1 })
+        });
+      }
+      const data = await readJsonSafely(response);
+      if (!response.ok) {
+        setContentManagerMessage("quizManagerMessage", errorMessageFrom(data, `HTTP ${response.status}`), true);
+        return;
+      }
+    } catch (error) {
+      setContentManagerMessage("quizManagerMessage", `${t("backend_unavailable")} ${error.message || ""}`, true);
+      return;
+    }
   } else {
-    config.quizQuestions.push({ id: nextManagedId("question"), key: "", texts, answer });
+    const config = loadContentConfig();
+    if (editId) {
+      const question = config.quizQuestions.find(entry => String(entry.id) === editId);
+      if (!question) return;
+      question.texts = texts;
+      question.answer = answer;
+    } else {
+      config.quizQuestions.push({ id: nextManagedId("question"), key: "", texts, answer });
+    }
+    bumpQuizVersion(config);
+    saveContentConfig(config);
   }
-  bumpQuizVersion(config);
-  saveContentConfig(config);
+
   clearQuizEditor();
-  renderSopQuiz();
+  await renderSopQuiz();
   renderSops();
   setContentManagerMessage("quizManagerMessage", t("quiz_changed_reset"));
 }
 
-function deleteQuizQuestion(id) {
+async function deleteQuizQuestion(id) {
   if (!canManageOnboardingContent()) return;
-  const config = loadContentConfig();
-  if (config.quizQuestions.length <= 1) {
-    setContentManagerMessage("quizManagerMessage", t("content_minimum_one"), true);
-    return;
-  }
   if (!window.confirm(t("content_confirm_delete"))) return;
-  config.quizQuestions = config.quizQuestions.filter(question => question.id !== id);
-  bumpQuizVersion(config);
-  saveContentConfig(config);
+
+  if (CONFIG.API_BASE_URL && apiToken) {
+    try {
+      const response = await fetch(apiUrl(`/api/admin/quiz-questions/${id}`), {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${apiToken}` }
+      });
+      if (!response.ok) {
+        const data = await readJsonSafely(response);
+        setContentManagerMessage("quizManagerMessage", errorMessageFrom(data, `HTTP ${response.status}`), true);
+        return;
+      }
+    } catch (error) {
+      setContentManagerMessage("quizManagerMessage", `${t("backend_unavailable")} ${error.message || ""}`, true);
+      return;
+    }
+  } else {
+    const config = loadContentConfig();
+    if (config.quizQuestions.length <= 1) {
+      setContentManagerMessage("quizManagerMessage", t("content_minimum_one"), true);
+      return;
+    }
+    config.quizQuestions = config.quizQuestions.filter(question => String(question.id) !== id);
+    bumpQuizVersion(config);
+    saveContentConfig(config);
+  }
+
   clearQuizEditor();
-  renderSopQuiz();
+  await renderSopQuiz();
   renderSops();
   setContentManagerMessage("quizManagerMessage", t("quiz_changed_reset"));
 }
@@ -1075,19 +1178,20 @@ function renderSops() {
 
 function submitSopQuiz() {
   const config = loadContentConfig();
+  const questions = quizQuestionsCache || config.quizQuestions;
   let correct = 0;
   let answered = 0;
-  config.quizQuestions.forEach(question => {
+  questions.forEach(question => {
     const selected = document.querySelector(`input[name="sopQuiz_${question.id}"]:checked`);
     if (selected) {
       answered += 1;
       if (selected.value === question.answer) correct += 1;
     }
   });
-  const score = config.quizQuestions.length ? Math.round(correct / config.quizQuestions.length * 100) : 0;
+  const score = questions.length ? Math.round(correct / questions.length * 100) : 0;
   const progress = loadSopProgress();
   progress.quizScore = score;
-  progress.quizPassed = answered === config.quizQuestions.length && score >= config.passingScore;
+  progress.quizPassed = answered === questions.length && score >= config.passingScore;
   progress.quizVersion = config.quizVersion;
   saveSopProgress(progress);
   $("sopQuizMessage").textContent = progress.quizPassed

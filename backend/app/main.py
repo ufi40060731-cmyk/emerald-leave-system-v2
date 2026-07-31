@@ -342,6 +342,22 @@ class OnboardingProgress(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class QuizQuestion(Base):
+    __tablename__ = "quiz_questions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    code: Mapped[str] = mapped_column(String(40), unique=True, index=True)
+    text_zh: Mapped[str] = mapped_column(String(400))
+    text_en: Mapped[str] = mapped_column(String(400), default="")
+    text_th: Mapped[str] = mapped_column(String(400), default="")
+    answer: Mapped[str] = mapped_column(String(3), default="yes")  # "yes" or "no"
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, index=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token")
 
@@ -455,6 +471,38 @@ class OnboardingItemUpdate(BaseModel):
 
 class OnboardingProgressUpdate(BaseModel):
     completed: bool
+
+
+class QuizQuestionOut(BaseModel):
+    id: int
+    code: str
+    text_zh: str
+    text_en: str
+    text_th: str
+    answer: str
+    sort_order: int
+    active: bool
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class QuizQuestionCreate(BaseModel):
+    code: str = Field(min_length=1, max_length=40)
+    text_zh: str = Field(min_length=1, max_length=400)
+    text_en: str = Field(default="", max_length=400)
+    text_th: str = Field(default="", max_length=400)
+    answer: str = Field(default="yes", pattern="^(yes|no)$")
+    sort_order: int = 0
+
+
+class QuizQuestionUpdate(BaseModel):
+    text_zh: str | None = Field(default=None, min_length=1, max_length=400)
+    text_en: str | None = Field(default=None, max_length=400)
+    text_th: str | None = Field(default=None, max_length=400)
+    answer: str | None = Field(default=None, pattern="^(yes|no)$")
+    sort_order: int | None = None
+    active: bool | None = None
 
 
 class LeaveCreate(BaseModel):
@@ -1194,6 +1242,25 @@ def seed_onboarding_items(db: Session) -> dict:
     return {"created": created, "total": len(ONBOARDING_ITEM_SEED)}
 
 
+QUIZ_QUESTION_SEED = [
+    {"code": "Q1", "text_zh": "請假申請送出後，通常需要主管與 HR 依流程確認。", "text_en": "After submission, a leave request normally follows manager and HR approval steps.", "text_th": "หลังส่งคำขอลา โดยทั่วไปต้องผ่านหัวหน้างานและ HR ตามขั้นตอน", "answer": "yes", "sort_order": 1},
+    {"code": "Q2", "text_zh": "星期六是否上班，應依個人的 A／B 輪班與特殊日設定判斷。", "text_en": "Saturday work status must be calculated from the employee's A/B group and special-day overrides.", "text_th": "การทำงานวันเสาร์ต้องดูจากกลุ่ม A/B และการกำหนดวันพิเศษของพนักงาน", "answer": "yes", "sort_order": 2},
+    {"code": "Q3", "text_zh": "沒有打卡紀錄時，可以自行修改資料而不留下原因。", "text_en": "A missing punch may be edited without a reason or audit trail.", "text_th": "กรณีลืมลงเวลา สามารถแก้ข้อมูลเองได้โดยไม่ต้องระบุเหตุผลหรือมีบันทึกตรวจสอบ", "answer": "no", "sort_order": 3},
+    {"code": "Q4", "text_zh": "未經 HR 發布的規章草稿，不能當成正式公司制度。", "text_en": "An HR-unpublished policy draft must not be treated as an official company rule.", "text_th": "ร่างระเบียบที่ HR ยังไม่เผยแพร่ ห้ามใช้เป็นข้อบังคับบริษัทอย่างเป็นทางการ", "answer": "yes", "sort_order": 4},
+    {"code": "Q5", "text_zh": "遇到安全或品質異常時，應立即停止、隔離並依正式通報流程處理。", "text_en": "A safety or quality abnormality should be stopped, isolated, and reported through the approved process.", "text_th": "เมื่อพบความผิดปกติด้านความปลอดภัยหรือคุณภาพ ควรหยุด แยก และรายงานตามขั้นตอนที่อนุมัติ", "answer": "yes", "sort_order": 5},
+]
+
+
+def seed_quiz_questions(db: Session) -> dict:
+    created = 0
+    for row in QUIZ_QUESTION_SEED:
+        if db.scalar(select(QuizQuestion).where(QuizQuestion.code == row["code"])) is None:
+            db.add(QuizQuestion(**row))
+            created += 1
+    db.commit()
+    return {"created": created, "total": len(QUIZ_QUESTION_SEED)}
+
+
 WORK_RULE_SEED = [
     {
         "code": "PURPOSE",
@@ -1631,6 +1698,7 @@ def seed_demo_data() -> None:
         seed_enterprise_data(db)
         seed_work_rules(db)
         seed_onboarding_items(db)
+        seed_quiz_questions(db)
 
 
 app = FastAPI(
@@ -2189,6 +2257,90 @@ def delete_onboarding_item(
     log_enterprise_event(db, actor.id, "onboarding_item_deleted", "onboarding_item", item.code, "")
     db.commit()
     return {"message": "Onboarding item deactivated", "code": item.code}
+
+
+@app.get("/api/quiz/questions", response_model=list[QuizQuestionOut])
+def list_quiz_questions(
+    _: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> list[QuizQuestion]:
+    stmt = (
+        select(QuizQuestion)
+        .where(QuizQuestion.active.is_(True))
+        .order_by(QuizQuestion.sort_order, QuizQuestion.code)
+    )
+    return list(db.scalars(stmt))
+
+
+@app.get("/api/admin/quiz-questions", response_model=list[QuizQuestionOut])
+def admin_list_quiz_questions(
+    _: Annotated[User, Depends(require_roles(Role.hr, Role.admin))],
+    db: Annotated[Session, Depends(get_db)],
+) -> list[QuizQuestion]:
+    stmt = select(QuizQuestion).order_by(QuizQuestion.sort_order, QuizQuestion.code)
+    return list(db.scalars(stmt))
+
+
+@app.post("/api/admin/quiz-questions", response_model=QuizQuestionOut, status_code=201)
+def create_quiz_question(
+    payload: QuizQuestionCreate,
+    actor: Annotated[User, Depends(require_roles(Role.hr, Role.admin))],
+    db: Annotated[Session, Depends(get_db)],
+) -> QuizQuestion:
+    code = payload.code.strip().upper()
+    if db.scalar(select(QuizQuestion).where(QuizQuestion.code == code)):
+        raise HTTPException(status_code=409, detail="Quiz question code already exists")
+
+    question = QuizQuestion(
+        code=code,
+        text_zh=payload.text_zh.strip(),
+        text_en=payload.text_en.strip(),
+        text_th=payload.text_th.strip(),
+        answer=payload.answer,
+        sort_order=payload.sort_order,
+    )
+    db.add(question)
+    log_enterprise_event(db, actor.id, "quiz_question_created", "quiz_question", code, "")
+    db.commit()
+    db.refresh(question)
+    return question
+
+
+@app.put("/api/admin/quiz-questions/{question_id}", response_model=QuizQuestionOut)
+def update_quiz_question(
+    question_id: int,
+    payload: QuizQuestionUpdate,
+    actor: Annotated[User, Depends(require_roles(Role.hr, Role.admin))],
+    db: Annotated[Session, Depends(get_db)],
+) -> QuizQuestion:
+    question = db.get(QuizQuestion, question_id)
+    if not question:
+        raise HTTPException(status_code=404, detail="Quiz question not found")
+
+    for field in ("text_zh", "text_en", "text_th", "answer", "sort_order", "active"):
+        value = getattr(payload, field)
+        if value is not None:
+            setattr(question, field, value.strip() if isinstance(value, str) else value)
+    question.updated_at = datetime.now(timezone.utc)
+    log_enterprise_event(db, actor.id, "quiz_question_updated", "quiz_question", question.code, "")
+    db.commit()
+    db.refresh(question)
+    return question
+
+
+@app.delete("/api/admin/quiz-questions/{question_id}")
+def delete_quiz_question(
+    question_id: int,
+    actor: Annotated[User, Depends(require_roles(Role.hr, Role.admin))],
+    db: Annotated[Session, Depends(get_db)],
+) -> dict:
+    question = db.get(QuizQuestion, question_id)
+    if not question:
+        raise HTTPException(status_code=404, detail="Quiz question not found")
+    question.active = False
+    log_enterprise_event(db, actor.id, "quiz_question_deleted", "quiz_question", question.code, "")
+    db.commit()
+    return {"message": "Quiz question deactivated", "code": question.code}
 
 
 @app.get("/api/work-rules", response_model=list[WorkRuleOut])

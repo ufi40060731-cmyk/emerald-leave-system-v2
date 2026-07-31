@@ -177,6 +177,7 @@ main{padding:22px;min-width:0}.topbar{display:flex;justify-content:space-between
           <div class="content-manager-head"><div><h4 data-i18n="quiz_manager_title"></h4><p class="onboarding-note" data-i18n="quiz_manager_note"></p></div><button type="button" id="restoreQuizDefaults" class="ghost" data-i18n="content_restore_defaults"></button></div>
           <div class="score-form"><label><span data-i18n="quiz_passing_score"></span><input id="quizPassingScore" type="number" min="60" max="100" step="1"></label><button type="button" id="saveQuizPassingScore" class="soft" data-i18n="quiz_save_score"></button></div>
           <input type="hidden" id="quizEditId">
+          <input type="text" id="quizEditCode" maxlength="40" data-i18n-placeholder="quiz_code_placeholder" style="margin-bottom:8px;">
           <p class="source-note" data-i18n="translation_fields_note"></p>
           <div class="translation-grid">
             <label><span data-i18n="translation_zh_tw"></span><textarea id="quizQuestionTextZh" maxlength="500" data-i18n-placeholder="quiz_question_placeholder_zh"></textarea></label>
@@ -364,9 +365,9 @@ window.EMERALD_CONFIG = window.EMERALD_CONFIG || Object.freeze({
 });
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="./config.js?v=20260730l"></script>
-<script src="./i18n.js?v=20260730l"></script>
-<script src="./app.js?v=20260730l"></script>
+<script src="./config.js?v=20260730m"></script>
+<script src="./i18n.js?v=20260730m"></script>
+<script src="./app.js?v=20260730m"></script>
 
 </body>
 </html>
