@@ -64,6 +64,7 @@ const NAV = [
   ["excel", "excel", ["hr", "admin"]],
   ["notifications", "notifications", ["employee", "manager", "hr", "admin"]],
   ["audit", "audit", ["hr", "admin"]],
+  ["chatlogs", "chat_logs", ["hr", "admin"]],
   ["settings", "settings", ["employee", "manager", "hr", "admin"]]
 
 ];
@@ -1732,6 +1733,8 @@ function bindEvents() {
   });
   $("syncHoliday").onclick = syncHolidays;
   $("prevYear").onclick = () => changeCalendarYear(-1);
+  if ($("refreshChatLogs")) $("refreshChatLogs").onclick = renderChatLogs;
+  if ($("chatLogSearch")) $("chatLogSearch").oninput = filterAndRenderChatLogs;
   $("prevMonth").onclick = () => changeCalendarMonth(-1);
   $("nextMonth").onclick = () => changeCalendarMonth(1);
   $("nextYear").onclick = () => changeCalendarYear(1);
@@ -1922,6 +1925,7 @@ function showPage(page) {
   $("pageTitle").textContent = t(item ? item[1] : page);
   if (page === "requests") renderRequests();
   if (page === "audit") renderAudit();
+  if (page === "chatlogs") renderChatLogs();
   if (page === "calendar") renderCalendar();
   if (page === "rotation") renderRotationPage();
   if (page === "onboarding") renderOnboarding();
@@ -2231,6 +2235,63 @@ function formatWithBuddhistYear(date, { dateOnly = false } = {}) {
 function formatAuditTime(value) {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? String(value || "") : date.toLocaleString(dateLocale()) + buddhistYearSuffix(date);
+}
+
+let chatLogsCache = [];
+
+async function renderChatLogs() {
+  const rows = $("chatLogRows");
+  const summary = $("chatLogSummary");
+  if (!rows) return;
+
+  if (!CONFIG.API_BASE_URL || !apiToken) {
+    rows.innerHTML = `<tr><td colspan="4">${escapeHtml(t("backend_unavailable"))}</td></tr>`;
+    return;
+  }
+
+  rows.innerHTML = `<tr><td colspan="4">${escapeHtml(t("loading"))}</td></tr>`;
+  try {
+    const response = await fetch(apiUrl("/api/admin/chat-logs?limit=500"), {
+      headers: { Authorization: `Bearer ${apiToken}` }
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    chatLogsCache = await response.json();
+    filterAndRenderChatLogs();
+  } catch (error) {
+    console.info("Could not load chat logs.", error);
+    rows.innerHTML = `<tr><td colspan="4">${escapeHtml(t("backend_unavailable"))}</td></tr>`;
+    if (summary) summary.textContent = "";
+  }
+}
+
+function filterAndRenderChatLogs() {
+  const rows = $("chatLogRows");
+  const summary = $("chatLogSummary");
+  const searchInput = $("chatLogSearch");
+  if (!rows) return;
+
+  const query = (searchInput?.value || "").trim().toLowerCase();
+  const filtered = !query
+    ? chatLogsCache
+    : chatLogsCache.filter(log =>
+        [log.message, log.user_id, log.answer_source].some(field => String(field || "").toLowerCase().includes(query))
+      );
+
+  rows.innerHTML = filtered.length
+    ? filtered.map(log => `<tr>` +
+        `<td>${escapeHtml(formatAuditTime(log.created_at))}</td>` +
+        `<td>${escapeHtml(log.user_id)}</td>` +
+        `<td>${escapeHtml(log.message)}</td>` +
+        `<td><span class="badge">${escapeHtml(t(`chat_log_source_${log.answer_source}`) || log.answer_source)}</span></td>` +
+        `</tr>`).join("")
+    : `<tr><td colspan="4">${escapeHtml(t("no_data"))}</td></tr>`;
+
+  if (summary) {
+    const noMatchCount = chatLogsCache.filter(log => log.answer_source === "rag_knowledge" || log.answer_source === "error").length;
+    summary.textContent = query
+      ? t("chat_logs_filtered_summary", { count: filtered.length, total: chatLogsCache.length })
+      : t("chat_logs_summary", { total: chatLogsCache.length, noMatch: noMatchCount });
+  }
 }
 
 function renderAudit() {
